@@ -1,0 +1,35 @@
+{
+  "name": "ws-sde",
+  "version": "1.0.2",
+  "description": "Package with WebSocket improvements",
+  "main": "dist/index.js",
+  "types": "src/index",
+  "repository": "Saint-Diamond-Entertainment/ws",
+  "homepage": "https://github.com/Saint-Diamond-Entertainment/ws",
+  "bugs": "https://github.com/Saint-Diamond-Entertainment/ws/issues",
+  "keywords": [
+    "websocket",
+    "ws",
+    "wssde",
+    "wss",
+    "real time"
+  ],
+  "scripts": {
+    "dev": "npx tsc && nodemon src/index.ts"
+  },
+  "author": "dmuzychenko",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^18.15.11",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.0.4",
+    "nodemon": "^2.0.22"
+  },
+  "dependencies": {
+    "@types/uuid": "^9.0.1",
+    "@types/ws": "^8.5.4",
+    "uuid": "^9.0.0",
+    "ws": "^8.13.0",
+    "wshub": "^8.13.0"
+  }
+}
