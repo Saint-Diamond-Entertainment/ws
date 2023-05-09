@@ -61,7 +61,6 @@ class WS {
         this.wss = new ws_1.WebSocketServer({ server: this._server });
         this.initialize();
         this.pingInterval = setInterval(() => {
-            console.log('clients ', this.clients.size);
             this.clients
                 .forEach(client => {
                 if (!client.isAlive) {

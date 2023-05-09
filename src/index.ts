@@ -69,7 +69,6 @@ export default class WS {
         this.initialize()
         
         this.pingInterval = setInterval(() => {
-            console.log('clients ', this.clients.size)
             this.clients
                 .forEach(client => {
                     if (!client.isAlive) {
