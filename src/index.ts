@@ -168,6 +168,14 @@ export default class WS {
         })
     }
     
+    broadcast = (room: string, data: JSON) => {
+        this.rooms.get(room)
+            ?.clients
+            .forEach(broadcastClientId => {
+                this.clients.get(broadcastClientId)?.send(JSON.stringify(data))
+            })
+    }
+    
     createRoom (name: string) {
         this.rooms.set(name, { clients: new Set() })
     }
