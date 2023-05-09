@@ -131,6 +131,10 @@ export default class WS {
             }
     
             client.join = (room: string) => {
+                if (!this.rooms.get(room)) {
+                    this.createRoom(room)
+                }
+                
                 this.rooms.get(room)?.clients.add(client)
             }
             

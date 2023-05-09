@@ -124,6 +124,9 @@ class WS {
             };
             client.join = (room) => {
                 var _a;
+                if (!this.rooms.get(room)) {
+                    this.createRoom(room);
+                }
                 (_a = this.rooms.get(room)) === null || _a === void 0 ? void 0 : _a.clients.add(client);
             };
             client.leave = (room) => {
