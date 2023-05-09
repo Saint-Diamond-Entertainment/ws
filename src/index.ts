@@ -113,7 +113,16 @@ export default class WS {
                             .forEach(room => {
                                 room.clients.delete(client.id)
                             })
-                            this.clients.delete(client.id)
+                            
+                            const clientConnections = this.clients.get(client.id)
+                            
+                            if (clientConnections) {
+                                this.clients.set(client.id, clientConnections.filter(connection => connection !== client))
+
+                                if (!this.clients.get(client.id)?.length) {
+                                    this.clients.delete(client.id)
+                                }
+                            }
                     })
                 }
                 catch (e) {

@@ -1,6 +1,6 @@
 {
   "name": "ws-sde",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "description": "Package with WebSocket improvements",
   "main": "dist/index.js",
   "types": "src/index",

@@ -31,9 +31,9 @@ class WS {
         };
         this.broadcast = (room, type, data) => {
             var _a;
-            (_a = this.rooms.get(room)) === null || _a === void 0 ? void 0 : _a.clients.forEach(broadcastClientId => {
+            (_a = this.rooms.get(room)) === null || _a === void 0 ? void 0 : _a.clients.forEach(client => {
                 var _a;
-                (_a = this.clients.get(broadcastClientId)) === null || _a === void 0 ? void 0 : _a.forEach(connection => {
+                (_a = this.clients.get(client.id)) === null || _a === void 0 ? void 0 : _a.forEach(connection => {
                     connection.send(JSON.stringify(Object.assign({ type }, data)));
                 });
             });
@@ -104,11 +104,18 @@ class WS {
                 try {
                     client.terminate();
                     process.nextTick(() => {
+                        var _a;
                         this.rooms
                             .forEach(room => {
                             room.clients.delete(client.id);
                         });
-                        this.clients.delete(client.id);
+                        const clientConnections = this.clients.get(client.id);
+                        if (clientConnections) {
+                            this.clients.set(client.id, clientConnections.filter(connection => connection !== client));
+                            if (!((_a = this.clients.get(client.id)) === null || _a === void 0 ? void 0 : _a.length)) {
+                                this.clients.delete(client.id);
+                            }
+                        }
                     });
                 }
                 catch (e) {
@@ -117,11 +124,11 @@ class WS {
             };
             client.join = (room) => {
                 var _a;
-                (_a = this.rooms.get(room)) === null || _a === void 0 ? void 0 : _a.clients.add(client.id);
+                (_a = this.rooms.get(room)) === null || _a === void 0 ? void 0 : _a.clients.add(client);
             };
             client.leave = (room) => {
                 var _a;
-                (_a = this.rooms.get(room)) === null || _a === void 0 ? void 0 : _a.clients.delete(client.id);
+                (_a = this.rooms.get(room)) === null || _a === void 0 ? void 0 : _a.clients.delete(client);
             };
             client.broadcast = (room, type, data, loopback = false) => {
                 var _a;
@@ -166,7 +173,6 @@ class WS {
             this.wss.clients.clear();
             const clientsWithSameId = this.clients.get(client.id) || [];
             this.clients.set(client.id, [...clientsWithSameId, client]);
-            this.clients.get('228').length >= 2 && console.log(this.clients.get('228')[0] === this.clients.get('228')[0]);
         }));
         this.wss.on('close', () => {
             clearInterval(this.pingInterval);
@@ -180,4 +186,3 @@ class WS {
     }
 }
 exports.default = WS;
-new WS({ port: 3000, authenticate(req, callback) { callback('', '228'); }, debug: true });
