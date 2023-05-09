@@ -166,7 +166,7 @@ class WS {
             this.wss.clients.clear();
             const clientsWithSameId = this.clients.get(client.id) || [];
             this.clients.set(client.id, [...clientsWithSameId, client]);
-            console.log(this.clients);
+            this.clients.get('228').length >= 2 && console.log(this.clients.get('228')[0] === this.clients.get('228')[0]);
         }));
         this.wss.on('close', () => {
             clearInterval(this.pingInterval);
@@ -180,4 +180,4 @@ class WS {
     }
 }
 exports.default = WS;
-new WS({ port: 3000, authenticate() { }, debug: true });
+new WS({ port: 3000, authenticate(req, callback) { callback('', '228'); }, debug: true });

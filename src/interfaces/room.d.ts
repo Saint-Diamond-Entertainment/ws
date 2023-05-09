@@ -1,3 +1,3 @@
 export interface IRoom {
-    clients: Set<string>
+    clients: Set<WebSocket.WebSocket>
 }

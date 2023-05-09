@@ -122,11 +122,11 @@ export default class WS {
             }
     
             client.join = (room: string) => {
-                this.rooms.get(room)?.clients.add(client.id)
+                this.rooms.get(room)?.clients.add(client)
             }
             
             client.leave = (room: string) => {
-                this.rooms.get(room)?.clients.delete(client.id)
+                this.rooms.get(room)?.clients.delete(client)
             }
     
             client.broadcast = (room: string, type: string, data: object, loopback: boolean = false) => {
@@ -199,8 +199,8 @@ export default class WS {
     broadcast = (room: string, type: string, data: object) => {
         this.rooms.get(room)
             ?.clients
-            .forEach(broadcastClientId => {
-                this.clients.get(broadcastClientId)
+            .forEach(client => {
+                this.clients.get(client.id)
                     ?.forEach(connection => {
                         connection.send(JSON.stringify({
                             type,
