@@ -112,7 +112,7 @@ export default class WS {
                 this.rooms.get(room)?.clients.delete(client.id)
             }
     
-            client.broadcast = (room: string, type: string, data: JSON, loopback: boolean = false) => {
+            client.broadcast = (room: string, type: string, data: object, loopback: boolean = false) => {
                 this.rooms.get(room)
                     ?.clients
                     .forEach(broadcastClientId => {
@@ -127,7 +127,7 @@ export default class WS {
                     })
             }
     
-            client.call = (type: string, data: JSON) => {
+            client.call = (type: string, data: object) => {
                 try {
                     client.send(JSON.stringify({
                         type,
@@ -174,7 +174,7 @@ export default class WS {
         })
     }
     
-    broadcast = (room: string, type: string, data: JSON) => {
+    broadcast = (room: string, type: string, data: object) => {
         this.rooms.get(room)
             ?.clients
             .forEach(broadcastClientId => {
