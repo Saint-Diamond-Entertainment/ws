@@ -6,12 +6,16 @@ import https from 'https'
 import { IRoom } from './interfaces/room'
 import { IServerData } from './interfaces/websocket'
 import { Server } from './types/websocket'
-import { DEFAULT_ERRORS_LOGGING, DEFAULT_INTERVAL, DEFAULT_IP } from './constants/websocket'
+import { DEFAULT_DEBUG, DEFAULT_ERRORS_LOGGING, DEFAULT_INTERVAL, DEFAULT_IP, DEFAULT_PORT } from './constants/websocket'
 
 export default class WS {
     private _server: Server
 
     wss: WebSocket.Server<WebSocket.WebSocket>
+    
+    private _ip: string = DEFAULT_IP
+    private _port: number = DEFAULT_PORT
+    private _debug: boolean = DEFAULT_DEBUG
 
     clients: Map<string, WebSocket.WebSocket> = new Map()
     rooms: Map<string, IRoom> = new Map()
@@ -19,10 +23,20 @@ export default class WS {
     pingInterval: NodeJS.Timer
     pingStep: number = DEFAULT_INTERVAL
     logErrors: boolean = DEFAULT_ERRORS_LOGGING
+    listenCallback: () => void = () => {
+        this._debug && console.log('✅ WebSocket server is listening on ' + this._ip + ':' + this._port)
+    }
     
     constructor (data: IServerData) {
-        const { cert, debug, key, port, secured } = data
-        const ip: string = data.ip || DEFAULT_IP
+        const { cert, key, port, secured, listenCallback } = data
+        
+        if (data.ip) {
+            this._ip = data.ip
+        }
+        
+        if (typeof data.debug === 'boolean') {
+            this._debug = data.debug
+        }
 
         if (typeof data.pingStep === 'number') {
             this.pingStep = data.pingStep
@@ -30,6 +44,10 @@ export default class WS {
 
         if (typeof data.logErrors === 'boolean') {
             this.logErrors = data.logErrors
+        }
+        
+        if (listenCallback) {
+            this.listenCallback = listenCallback
         }
 
         if (secured) {
@@ -63,9 +81,7 @@ export default class WS {
                 })
         }, this.pingStep)
 
-        this._server.listen(port, ip, () => {
-            debug && console.log('✅ WebSocket server is listening on ' + ip + ':' + port)
-        })
+        this._server.listen(port, this._ip, this.listenCallback)
     }
     
     initialize () {

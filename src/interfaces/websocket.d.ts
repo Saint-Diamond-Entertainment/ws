@@ -3,6 +3,7 @@ export interface IServerData {
     debug?: boolean
     ip?: string
     key?: string
+    listenCallback?: () => void
     logErrors?: boolean
     pingStep?: number
     port: number

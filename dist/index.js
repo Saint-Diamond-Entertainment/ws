@@ -20,17 +20,31 @@ const https_1 = __importDefault(require("https"));
 const websocket_1 = require("./constants/websocket");
 class WS {
     constructor(data) {
+        this._ip = websocket_1.DEFAULT_IP;
+        this._port = websocket_1.DEFAULT_PORT;
+        this._debug = websocket_1.DEFAULT_DEBUG;
         this.clients = new Map();
         this.rooms = new Map();
         this.pingStep = websocket_1.DEFAULT_INTERVAL;
         this.logErrors = websocket_1.DEFAULT_ERRORS_LOGGING;
-        const { cert, debug, key, port, secured } = data;
-        const ip = data.ip || websocket_1.DEFAULT_IP;
+        this.listenCallback = () => {
+            this._debug && console.log('✅ WebSocket server is listening on ' + this._ip + ':' + this._port);
+        };
+        const { cert, key, port, secured, listenCallback } = data;
+        if (data.ip) {
+            this._ip = data.ip;
+        }
+        if (typeof data.debug === 'boolean') {
+            this._debug = data.debug;
+        }
         if (typeof data.pingStep === 'number') {
             this.pingStep = data.pingStep;
         }
         if (typeof data.logErrors === 'boolean') {
             this.logErrors = data.logErrors;
+        }
+        if (listenCallback) {
+            this.listenCallback = listenCallback;
         }
         if (secured) {
             if (!cert || !key) {
@@ -57,9 +71,7 @@ class WS {
                 client.ping();
             });
         }, this.pingStep);
-        this._server.listen(port, ip, () => {
-            debug && console.log('✅ WebSocket server is listening on ' + ip + ':' + port);
-        });
+        this._server.listen(port, this._ip, this.listenCallback);
     }
     initialize() {
         this.wss.on('connection', (client) => __awaiter(this, void 0, void 0, function* () {
@@ -141,3 +153,4 @@ class WS {
     }
 }
 exports.default = WS;
+const a = new WS({ listenCallback: () => console.log('REEEE'), port: 3000 });
