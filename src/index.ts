@@ -16,7 +16,7 @@ export default class WS {
     private _port: number = DEFAULT_PORT
     private _debug: boolean = DEFAULT_DEBUG
 
-    clients: Map<string, WebSocket.WebSocket> = new Map()
+    clients: Map<string, WebSocket.WebSocket[]> = new Map()
     rooms: Map<string, IRoom> = new Map()
 
     pingInterval: NodeJS.Timer
@@ -82,13 +82,15 @@ export default class WS {
                         
         this.pingInterval = setInterval(() => {
             this.clients
-                .forEach(client => {
-                    if (!client.isAlive) {
-                        return client.disconnect()
-                    }
-                    
-                    client.isAlive = false
-                    client.ping()
+                .forEach(connections => {
+                    connections.forEach(client => {
+                        if (!client.isAlive) {
+                            return client.disconnect()
+                        }
+                        
+                        client.isAlive = false
+                        client.ping()
+                    })
                 })
         }, this.pingStep)
 
@@ -135,10 +137,13 @@ export default class WS {
                             return
                         }
                         
-                        this.clients.get(broadcastClientId)?.send(JSON.stringify({
-                            type,
-                            ...data
-                        }))
+                        this.clients.get(broadcastClientId)
+                            ?.forEach(client => {
+                                client.send(JSON.stringify({
+                                    type,
+                                    ...data
+                                }))
+                            })
                     })
             }
     
@@ -181,7 +186,9 @@ export default class WS {
             })
             
             this.wss.clients.clear()
-            this.clients.set(client.id, client)
+            
+            const clientsWithSameId = this.clients.get(client.id) || []
+            this.clients.set(client.id, [...clientsWithSameId, client])
         })
     
         this.wss.on('close', () => {
@@ -193,10 +200,13 @@ export default class WS {
         this.rooms.get(room)
             ?.clients
             .forEach(broadcastClientId => {
-                this.clients.get(broadcastClientId)?.send(JSON.stringify({
-                    type,
-                    ...data
-                }))
+                this.clients.get(broadcastClientId)
+                    ?.forEach(connection => {
+                        connection.send(JSON.stringify({
+                            type,
+                            ...data
+                        }))
+                    })
             })
     }
     

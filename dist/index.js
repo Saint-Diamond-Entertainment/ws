@@ -13,7 +13,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const ws_1 = require("ws");
-const uuid_1 = require("uuid");
 const fs_1 = require("fs");
 const http_1 = __importDefault(require("http"));
 const https_1 = __importDefault(require("https"));
@@ -34,10 +33,12 @@ class WS {
             var _a;
             (_a = this.rooms.get(room)) === null || _a === void 0 ? void 0 : _a.clients.forEach(broadcastClientId => {
                 var _a;
-                (_a = this.clients.get(broadcastClientId)) === null || _a === void 0 ? void 0 : _a.send(JSON.stringify(Object.assign({ type }, data)));
+                (_a = this.clients.get(broadcastClientId)) === null || _a === void 0 ? void 0 : _a.forEach(connection => {
+                    connection.send(JSON.stringify(Object.assign({ type }, data)));
+                });
             });
         };
-        const { cert, key, port, secured, listenCallback } = data;
+        const { authenticate, cert, key, port, secured, listenCallback } = data;
         if (data.ip) {
             this._ip = data.ip;
         }
@@ -65,40 +66,40 @@ class WS {
         else {
             this._server = http_1.default.createServer();
         }
-        this.wss = new ws_1.WebSocketServer({ server: this._server });
-        this._server.on('upgrade', (request, socket, head) => {
-            function authenticate(request, callback) {
-                console.log('AUTH');
-                callback();
-            }
-            authenticate(request, (err, client) => {
-                if (err || !client) {
-                    socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
-                    socket.destroy();
+        this.wss = new ws_1.WebSocketServer({ noServer: true });
+        this.initialize();
+        this._server.on('upgrade', (request, client, head) => {
+            authenticate(request, (err, id, data) => {
+                if (err) {
+                    client.destroy();
                     return;
                 }
-                this.wss.handleUpgrade(request, socket, head, (ws) => {
-                    this.wss.emit('connection', ws, request, client);
+                this.wss.handleUpgrade(request, client, head, (ws) => {
+                    this.wss.emit('connection', ws, request, id, data);
                 });
             });
         });
-        this.initialize();
         this.pingInterval = setInterval(() => {
             this.clients
-                .forEach(client => {
-                if (!client.isAlive) {
-                    return client.disconnect();
-                }
-                client.isAlive = false;
-                client.ping();
+                .forEach(connections => {
+                connections.forEach(client => {
+                    if (!client.isAlive) {
+                        return client.disconnect();
+                    }
+                    client.isAlive = false;
+                    client.ping();
+                });
             });
         }, this.pingStep);
         this._server.listen(port, this._ip, this.listenCallback);
     }
     initialize() {
-        this.wss.on('connection', (client) => __awaiter(this, void 0, void 0, function* () {
+        this.wss.on('connection', (client, request, id, data) => __awaiter(this, void 0, void 0, function* () {
             client.isAlive = true;
-            client.id = (0, uuid_1.v4)();
+            client.id = id;
+            if (data) {
+                client.account = data;
+            }
             client.disconnect = () => {
                 try {
                     client.terminate();
@@ -129,7 +130,9 @@ class WS {
                     if (!loopback && broadcastClientId === client.id) {
                         return;
                     }
-                    (_a = this.clients.get(broadcastClientId)) === null || _a === void 0 ? void 0 : _a.send(JSON.stringify(Object.assign({ type }, data)));
+                    (_a = this.clients.get(broadcastClientId)) === null || _a === void 0 ? void 0 : _a.forEach(client => {
+                        client.send(JSON.stringify(Object.assign({ type }, data)));
+                    });
                 });
             };
             client.call = (type, data) => {
@@ -161,7 +164,9 @@ class WS {
                 client.disconnect();
             });
             this.wss.clients.clear();
-            this.clients.set(client.id, client);
+            const clientsWithSameId = this.clients.get(client.id) || [];
+            this.clients.set(client.id, [...clientsWithSameId, client]);
+            console.log(this.clients);
         }));
         this.wss.on('close', () => {
             clearInterval(this.pingInterval);
@@ -175,4 +180,4 @@ class WS {
     }
 }
 exports.default = WS;
-new WS({ port: 3000 });
+new WS({ port: 3000, authenticate() { }, debug: true });
