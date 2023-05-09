@@ -112,7 +112,7 @@ export default class WS {
                 this.rooms.get(room)?.clients.delete(client.id)
             }
     
-            client.broadcast = (room: string, data: JSON, loopback: boolean = false) => {
+            client.broadcast = (room: string, type: string, data: JSON, loopback: boolean = false) => {
                 this.rooms.get(room)
                     ?.clients
                     .forEach(broadcastClientId => {
@@ -120,13 +120,19 @@ export default class WS {
                             return
                         }
                         
-                        this.clients.get(broadcastClientId)?.send(JSON.stringify(data))
+                        this.clients.get(broadcastClientId)?.send(JSON.stringify({
+                            type,
+                            ...data
+                        }))
                     })
             }
     
-            client.call = (data: JSON) => {
+            client.call = (type: string, data: JSON) => {
                 try {
-                    client.send(JSON.stringify(data))
+                    client.send(JSON.stringify({
+                        type,
+                        ...data
+                    }))
                 }
                 catch (e) {
                     this.logErrors && console.error('Error while parsing data: ', e)
@@ -168,11 +174,14 @@ export default class WS {
         })
     }
     
-    broadcast = (room: string, data: JSON) => {
+    broadcast = (room: string, type: string, data: JSON) => {
         this.rooms.get(room)
             ?.clients
             .forEach(broadcastClientId => {
-                this.clients.get(broadcastClientId)?.send(JSON.stringify(data))
+                this.clients.get(broadcastClientId)?.send(JSON.stringify({
+                    type,
+                    ...data
+                }))
             })
     }
     
