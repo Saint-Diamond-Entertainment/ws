@@ -153,4 +153,3 @@ class WS {
     }
 }
 exports.default = WS;
-const a = new WS({ listenCallback: () => console.log('REEEE'), port: 3000 });
