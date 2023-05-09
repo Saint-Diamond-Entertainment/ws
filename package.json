@@ -1,6 +1,6 @@
 {
   "name": "ws-sde",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "Package with WebSocket improvements",
   "main": "dist/index.js",
   "types": "src/index",
@@ -26,9 +26,7 @@
     "typescript": "^5.0.4"
   },
   "dependencies": {
-    "@types/uuid": "^9.0.1",
     "@types/ws": "^8.5.4",
-    "uuid": "^9.0.0",
     "ws": "^8.13.0"
   }
 }

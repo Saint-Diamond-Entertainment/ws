@@ -1,5 +1,4 @@
 import WebSocket, { WebSocketServer } from 'ws'
-import { v4 as uuidv4 } from 'uuid'
 import { readFileSync } from 'fs'
 import http from 'http'
 import https from 'https'
@@ -28,7 +27,7 @@ export default class WS {
     }
     
     constructor (data: IServerData) {
-        const { cert, key, port, secured, listenCallback } = data
+        const { authenticate, cert, key, port, secured, listenCallback } = data
         
         if (data.ip) {
             this._ip = data.ip
@@ -64,10 +63,23 @@ export default class WS {
             this._server = http.createServer()
         }
 
-        this.wss = new WebSocketServer({ server: this._server })
-
-        this.initialize()
+        this.wss = new WebSocketServer({ noServer: true })
         
+        this.initialize()
+                
+        this._server.on('upgrade', (request, client, head) => {
+            authenticate (request, (err: string, id?: string) => {
+                if (err) {
+                    client.destroy()
+                    return
+                }
+            
+                this.wss.handleUpgrade(request, client, head, (ws: WebSocket) => {
+                    this.wss.emit('connection', ws, request, id)
+                })
+            })
+        })
+                        
         this.pingInterval = setInterval(() => {
             this.clients
                 .forEach(client => {
@@ -84,10 +96,10 @@ export default class WS {
     }
     
     initialize () {
-        this.wss.on('connection', async client => {
+        this.wss.on('connection', async (client: WebSocket.WebSocket, request: any, id: string) => {
             client.isAlive = true
-            client.id = uuidv4()
-    
+            client.id = id
+            
             client.disconnect = () => {
                 try {
                     client.terminate()

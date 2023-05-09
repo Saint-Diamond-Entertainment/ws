@@ -1,4 +1,5 @@
 export interface IServerData {
+    authenticate: Function
     cert?: string
     debug?: boolean
     ip?: string

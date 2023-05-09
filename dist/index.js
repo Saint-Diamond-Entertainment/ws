@@ -30,6 +30,13 @@ class WS {
         this.listenCallback = () => {
             this._debug && console.log('✅ WebSocket server is listening on ' + this._ip + ':' + this._port);
         };
+        this.broadcast = (room, type, data) => {
+            var _a;
+            (_a = this.rooms.get(room)) === null || _a === void 0 ? void 0 : _a.clients.forEach(broadcastClientId => {
+                var _a;
+                (_a = this.clients.get(broadcastClientId)) === null || _a === void 0 ? void 0 : _a.send(JSON.stringify(Object.assign({ type }, data)));
+            });
+        };
         const { cert, key, port, secured, listenCallback } = data;
         if (data.ip) {
             this._ip = data.ip;
@@ -59,6 +66,22 @@ class WS {
             this._server = http_1.default.createServer();
         }
         this.wss = new ws_1.WebSocketServer({ server: this._server });
+        this._server.on('upgrade', (request, socket, head) => {
+            function authenticate(request, callback) {
+                console.log('AUTH');
+                callback();
+            }
+            authenticate(request, (err, client) => {
+                if (err || !client) {
+                    socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+                    socket.destroy();
+                    return;
+                }
+                this.wss.handleUpgrade(request, socket, head, (ws) => {
+                    this.wss.emit('connection', ws, request, client);
+                });
+            });
+        });
         this.initialize();
         this.pingInterval = setInterval(() => {
             this.clients
@@ -99,19 +122,19 @@ class WS {
                 var _a;
                 (_a = this.rooms.get(room)) === null || _a === void 0 ? void 0 : _a.clients.delete(client.id);
             };
-            client.broadcast = (room, data, loopback = false) => {
+            client.broadcast = (room, type, data, loopback = false) => {
                 var _a;
                 (_a = this.rooms.get(room)) === null || _a === void 0 ? void 0 : _a.clients.forEach(broadcastClientId => {
                     var _a;
                     if (!loopback && broadcastClientId === client.id) {
                         return;
                     }
-                    (_a = this.clients.get(broadcastClientId)) === null || _a === void 0 ? void 0 : _a.send(JSON.stringify(data));
+                    (_a = this.clients.get(broadcastClientId)) === null || _a === void 0 ? void 0 : _a.send(JSON.stringify(Object.assign({ type }, data)));
                 });
             };
-            client.call = (data) => {
+            client.call = (type, data) => {
                 try {
-                    client.send(JSON.stringify(data));
+                    client.send(JSON.stringify(Object.assign({ type }, data)));
                 }
                 catch (e) {
                     this.logErrors && console.error('Error while parsing data: ', e);
@@ -152,3 +175,4 @@ class WS {
     }
 }
 exports.default = WS;
+new WS({ port: 3000 });
