@@ -2,6 +2,7 @@ import ws from 'ws'
 
 declare module 'ws' {
     export interface WebSocket extends ws {
+        account: object
         broadcast: Function
         call: Function
         disconnect: Function

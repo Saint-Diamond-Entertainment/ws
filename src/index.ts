@@ -68,14 +68,14 @@ export default class WS {
         this.initialize()
                 
         this._server.on('upgrade', (request, client, head) => {
-            authenticate (request, (err: string, id?: string) => {
+            authenticate (request, (err: string, id: string, data?: object) => {
                 if (err) {
                     client.destroy()
                     return
                 }
             
                 this.wss.handleUpgrade(request, client, head, (ws: WebSocket) => {
-                    this.wss.emit('connection', ws, request, id)
+                    this.wss.emit('connection', ws, request, id, data)
                 })
             })
         })
@@ -96,9 +96,12 @@ export default class WS {
     }
     
     initialize () {
-        this.wss.on('connection', async (client: WebSocket.WebSocket, request: any, id: string) => {
+        this.wss.on('connection', async (client: WebSocket.WebSocket, request: any, id: string, data?: object) => {
             client.isAlive = true
             client.id = id
+            if (data) {
+                client.account = data
+            }
             
             client.disconnect = () => {
                 try {
