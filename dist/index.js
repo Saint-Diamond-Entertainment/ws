@@ -24,7 +24,7 @@ class WS {
         this._debug = websocket_1.DEFAULT_DEBUG;
         this.clients = new Map();
         this.rooms = new Map();
-        this.pingStep = websocket_1.DEFAULT_INTERVAL;
+        this.pingInterval = websocket_1.DEFAULT_INTERVAL;
         this.logErrors = websocket_1.DEFAULT_ERRORS_LOGGING;
         this.listenCallback = () => {
             this._debug && console.log('✅ WebSocket server is listening on ' + this._ip + ':' + this._port);
@@ -45,8 +45,8 @@ class WS {
         if (typeof data.debug === 'boolean') {
             this._debug = data.debug;
         }
-        if (typeof data.pingStep === 'number') {
-            this.pingStep = data.pingStep;
+        if (typeof data.pingInterval === 'number') {
+            this.pingInterval = data.pingInterval;
         }
         if (typeof data.logErrors === 'boolean') {
             this.logErrors = data.logErrors;
@@ -79,7 +79,7 @@ class WS {
                 });
             });
         });
-        this.pingInterval = setInterval(() => {
+        this.pingTimer = setInterval(() => {
             this.clients
                 .forEach(connections => {
                 connections.forEach(client => {
@@ -90,7 +90,7 @@ class WS {
                     client.ping();
                 });
             });
-        }, this.pingStep);
+        }, this.pingInterval);
         this._server.listen(port, this._ip, this.listenCallback);
     }
     initialize() {
@@ -100,6 +100,20 @@ class WS {
             if (data) {
                 client.account = data;
             }
+            client.join = (room) => {
+                var _a;
+                if (!this.rooms.get(room)) {
+                    this.createRoom(room);
+                }
+                (_a = this.rooms.get(room)) === null || _a === void 0 ? void 0 : _a.clients.add(client);
+            };
+            client.leave = (room) => {
+                var _a, _b;
+                (_a = this.rooms.get(room)) === null || _a === void 0 ? void 0 : _a.clients.delete(client);
+                if (!((_b = this.rooms.get(room)) === null || _b === void 0 ? void 0 : _b.clients.size)) {
+                    this.deleteRoom(room);
+                }
+            };
             client.disconnect = () => {
                 try {
                     client.terminate();
@@ -107,7 +121,7 @@ class WS {
                         var _a;
                         this.rooms
                             .forEach(room => {
-                            room.clients.delete(client.id);
+                            client.leave(room);
                         });
                         const clientConnections = this.clients.get(client.id);
                         if (clientConnections) {
@@ -121,17 +135,6 @@ class WS {
                 catch (e) {
                     this.logErrors && console.error('Error while disconnecting: ', e);
                 }
-            };
-            client.join = (room) => {
-                var _a;
-                if (!this.rooms.get(room)) {
-                    this.createRoom(room);
-                }
-                (_a = this.rooms.get(room)) === null || _a === void 0 ? void 0 : _a.clients.add(client);
-            };
-            client.leave = (room) => {
-                var _a;
-                (_a = this.rooms.get(room)) === null || _a === void 0 ? void 0 : _a.clients.delete(client);
             };
             client.broadcast = (room, type, data, loopback = false) => {
                 var _a;
@@ -178,7 +181,7 @@ class WS {
             this.clients.set(client.id, [...clientsWithSameId, client]);
         }));
         this.wss.on('close', () => {
-            clearInterval(this.pingInterval);
+            clearInterval(this.pingTimer);
         });
     }
     createRoom(name) {

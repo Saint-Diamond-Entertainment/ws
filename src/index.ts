@@ -3,7 +3,7 @@ import { readFileSync } from 'fs'
 import http from 'http'
 import https from 'https'
 import { IRoom } from './interfaces/room'
-import { IServerData } from './interfaces/websocket'
+import { IServerData, IMessage } from './interfaces/websocket'
 import { Server } from './types/websocket'
 import { DEFAULT_DEBUG, DEFAULT_ERRORS_LOGGING, DEFAULT_INTERVAL, DEFAULT_IP, DEFAULT_PORT } from './constants/websocket'
 
@@ -19,8 +19,8 @@ export default class WS {
     clients: Map<string, WebSocket.WebSocket[]> = new Map()
     rooms: Map<string, IRoom> = new Map()
 
-    pingInterval: NodeJS.Timer
-    pingStep: number = DEFAULT_INTERVAL
+    pingTimer: NodeJS.Timer
+    pingInterval: number = DEFAULT_INTERVAL
     logErrors: boolean = DEFAULT_ERRORS_LOGGING
     listenCallback: () => void = () => {
         this._debug && console.log('✅ WebSocket server is listening on ' + this._ip + ':' + this._port)
@@ -37,8 +37,8 @@ export default class WS {
             this._debug = data.debug
         }
 
-        if (typeof data.pingStep === 'number') {
-            this.pingStep = data.pingStep
+        if (typeof data.pingInterval === 'number') {
+            this.pingInterval = data.pingInterval
         }
 
         if (typeof data.logErrors === 'boolean') {
@@ -80,7 +80,7 @@ export default class WS {
             })
         })
                         
-        this.pingInterval = setInterval(() => {
+        this.pingTimer = setInterval(() => {
             this.clients
                 .forEach(connections => {
                     connections.forEach(client => {
@@ -92,7 +92,7 @@ export default class WS {
                         client.ping()
                     })
                 })
-        }, this.pingStep)
+        }, this.pingInterval)
 
         this._server.listen(port, this._ip, this.listenCallback)
     }
@@ -101,8 +101,25 @@ export default class WS {
         this.wss.on('connection', async (client: WebSocket.WebSocket, request: any, id: string, data?: object) => {
             client.isAlive = true
             client.id = id
+            
             if (data) {
                 client.account = data
+            }
+            
+            client.join = (room: string) => {
+                if (!this.rooms.get(room)) {
+                    this.createRoom(room)
+                }
+                
+                this.rooms.get(room)?.clients.add(client)
+            }
+            
+            client.leave = (room: string) => {
+                this.rooms.get(room)?.clients.delete(client)
+                
+                if (!this.rooms.get(room)?.clients.size) {
+                    this.deleteRoom(room)
+                }
             }
             
             client.disconnect = () => {
@@ -111,7 +128,7 @@ export default class WS {
                     process.nextTick(() => {
                         this.rooms
                             .forEach(room => {
-                                room.clients.delete(client.id)
+                                client.leave(room)
                             })
                             
                             const clientConnections = this.clients.get(client.id)
@@ -128,18 +145,6 @@ export default class WS {
                 catch (e) {
                     this.logErrors && console.error('Error while disconnecting: ', e)
                 }
-            }
-    
-            client.join = (room: string) => {
-                if (!this.rooms.get(room)) {
-                    this.createRoom(room)
-                }
-                
-                this.rooms.get(room)?.clients.add(client)
-            }
-            
-            client.leave = (room: string) => {
-                this.rooms.get(room)?.clients.delete(client)
             }
     
             client.broadcast = (room: string, type: string, data: object, loopback: boolean = false) => {
@@ -174,7 +179,7 @@ export default class WS {
             
             client.on('message', message => {
                 try {
-                    const normalizedMessage = JSON.parse(message.toString())
+                    const normalizedMessage: IMessage = JSON.parse(message.toString())
                     
                     if (!normalizedMessage.type) {
                         throw new Error('No message type')
@@ -205,7 +210,7 @@ export default class WS {
         })
     
         this.wss.on('close', () => {
-            clearInterval(this.pingInterval)
+            clearInterval(this.pingTimer)
         })
     }
     

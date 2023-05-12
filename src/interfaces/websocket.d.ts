@@ -1,3 +1,8 @@
+export interface IMessage {
+    type: string,
+    data?: object
+}
+
 export interface IServerData {
     authenticate: Function
     cert?: string
@@ -6,7 +11,7 @@ export interface IServerData {
     key?: string
     listenCallback?: () => void
     logErrors?: boolean
-    pingStep?: number
+    pingInterval?: number
     port: number
     secured?: boolean
 }
