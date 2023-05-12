@@ -185,7 +185,9 @@ class WS {
         });
     }
     createRoom(name) {
-        this.rooms.set(name, { clients: new Set() });
+        if (!this.rooms.get(name)) {
+            this.rooms.set(name, { clients: new Set() });
+        }
     }
     deleteRoom(name) {
         this.rooms.delete(name);

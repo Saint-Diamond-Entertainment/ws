@@ -229,7 +229,9 @@ export default class WS {
     }
     
     createRoom (name: string) {
-        this.rooms.set(name, { clients: new Set() })
+        if (!this.rooms.get(name)) {
+            this.rooms.set(name, { clients: new Set() })
+        }
     }
     
     deleteRoom (name: string) {
