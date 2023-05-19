@@ -159,7 +159,7 @@ export default class WS {
                             ?.forEach(client => {
                                 client.send(JSON.stringify({
                                     type,
-                                    ...data
+                                    data
                                 }))
                             })
                     })
@@ -169,7 +169,7 @@ export default class WS {
                 try {
                     client.send(JSON.stringify({
                         type,
-                        ...data
+                        data
                     }))
                 }
                 catch (e) {
@@ -222,7 +222,7 @@ export default class WS {
                     ?.forEach(connection => {
                         connection.send(JSON.stringify({
                             type,
-                            ...data
+                            data
                         }))
                     })
             })
