@@ -34,7 +34,10 @@ class WS {
             (_a = this.rooms.get(room)) === null || _a === void 0 ? void 0 : _a.clients.forEach(client => {
                 var _a;
                 (_a = this.clients.get(client.id)) === null || _a === void 0 ? void 0 : _a.forEach(connection => {
-                    connection.send(JSON.stringify(Object.assign({ type }, data)));
+                    connection.send(JSON.stringify({
+                        type,
+                        data
+                    }));
                 });
             });
         };
@@ -144,13 +147,19 @@ class WS {
                         return;
                     }
                     (_a = this.clients.get(broadcastClientId)) === null || _a === void 0 ? void 0 : _a.forEach(client => {
-                        client.send(JSON.stringify(Object.assign({ type }, data)));
+                        client.send(JSON.stringify({
+                            type,
+                            data
+                        }));
                     });
                 });
             };
             client.call = (type, data) => {
                 try {
-                    client.send(JSON.stringify(Object.assign({ type }, data)));
+                    client.send(JSON.stringify({
+                        type,
+                        data
+                    }));
                 }
                 catch (e) {
                     this.logErrors && console.error('Error while parsing data: ', e);
