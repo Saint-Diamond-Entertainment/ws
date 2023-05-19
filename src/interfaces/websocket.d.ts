@@ -1,6 +1,6 @@
 export interface IMessage {
     type: string,
-    data?: object
+    data?: string
 }
 
 export interface IServerData {

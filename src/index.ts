@@ -68,7 +68,7 @@ export default class WS {
         this.initialize()
                 
         this._server.on('upgrade', (request, client, head) => {
-            authenticate (request, (err: string, id: string, data?: object) => {
+            authenticate (request, (err: string, id?: string, data?: object) => {
                 if (err) {
                     client.destroy()
                     return
@@ -186,7 +186,7 @@ export default class WS {
                     }
                     
                     const type: string = normalizedMessage.type
-                    const data: object = normalizedMessage.data || {}
+                    const data: object = JSON.parse(normalizedMessage.data || '{}')
                     
                     client.emit(type, data)
                 }
