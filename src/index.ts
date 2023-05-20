@@ -187,7 +187,7 @@ export default class WS {
                     }
                     
                     const type: string = normalizedMessage.type
-                    const data: object = JSON.parse(normalizedMessage.data || '{}')
+                    const data: object = normalizedMessage.data || {}
                     
                     client.emit(type, data)
                 }

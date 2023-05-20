@@ -173,7 +173,7 @@ class WS {
                         throw new Error('No message type');
                     }
                     const type = normalizedMessage.type;
-                    const data = JSON.parse(normalizedMessage.data || '{}');
+                    const data = normalizedMessage.data || {};
                     client.emit(type, data);
                 }
                 catch (e) {
