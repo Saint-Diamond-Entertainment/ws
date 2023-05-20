@@ -133,6 +133,7 @@ class WS {
                                 this.clients.delete(client.id);
                             }
                         }
+                        client.emit('disconnect');
                     });
                 }
                 catch (e) {
