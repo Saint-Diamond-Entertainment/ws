@@ -122,7 +122,8 @@ class WS {
                     client.terminate();
                     process.nextTick(() => {
                         var _a;
-                        this.rooms
+                        [...this.rooms
+                                .keys()]
                             .forEach(room => {
                             client.leave(room);
                         });

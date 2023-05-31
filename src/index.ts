@@ -125,8 +125,10 @@ export default class WS {
             client.disconnect = () => {
                 try {
                     client.terminate()
+                    
                     process.nextTick(() => {
-                        this.rooms
+                        [...this.rooms
+                            .keys()]
                             .forEach(room => {
                                 client.leave(room)
                             })
