@@ -54,6 +54,9 @@ class WS {
         if (typeof data.logErrors === 'boolean') {
             this.logErrors = data.logErrors;
         }
+        if (data.port) {
+            this._port = port;
+        }
         if (listenCallback) {
             this.listenCallback = listenCallback;
         }
@@ -78,7 +81,7 @@ class WS {
                     return;
                 }
                 this.wss.handleUpgrade(request, client, head, (ws) => {
-                    this.wss.emit('connection', ws, request, id, data);
+                    this.wss.emit('connection', ws, id, data);
                 });
             });
         });
@@ -97,7 +100,7 @@ class WS {
         this._server.listen(port, this._ip, this.listenCallback);
     }
     initialize() {
-        this.wss.on('connection', (client, request, id, data) => __awaiter(this, void 0, void 0, function* () {
+        this.wss.on('connection', (client, id, data) => __awaiter(this, void 0, void 0, function* () {
             client.isAlive = true;
             client.id = id;
             if (data) {

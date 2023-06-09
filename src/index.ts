@@ -44,6 +44,10 @@ export default class WS {
         if (typeof data.logErrors === 'boolean') {
             this.logErrors = data.logErrors
         }
+
+        if (data.port) {
+            this._port = port
+        }
         
         if (listenCallback) {
             this.listenCallback = listenCallback
@@ -75,7 +79,7 @@ export default class WS {
                 }
             
                 this.wss.handleUpgrade(request, client, head, (ws: WebSocket) => {
-                    this.wss.emit('connection', ws, request, id, data)
+                    this.wss.emit('connection', ws, id, data)
                 })
             })
         })
@@ -98,7 +102,7 @@ export default class WS {
     }
     
     initialize () {
-        this.wss.on('connection', async (client: WebSocket.WebSocket, request: any, id: string, data?: object) => {
+        this.wss.on('connection', async (client: WebSocket.WebSocket, id: string, data?: object) => {
             client.isAlive = true
             client.id = id
             
