@@ -72,14 +72,14 @@ export default class WS {
         this.initialize()
                 
         this._server.on('upgrade', (request, client, head) => {
-            authenticate (request, (err: string, id?: string, data?: object) => {
+            authenticate (request, (err: string, data?: object) => {
                 if (err) {
                     client.destroy()
                     return
                 }
             
                 this.wss.handleUpgrade(request, client, head, (ws: WebSocket) => {
-                    this.wss.emit('connection', ws, id, data)
+                    this.wss.emit('connection', ws, data)
                 })
             })
         })
@@ -102,9 +102,8 @@ export default class WS {
     }
     
     initialize () {
-        this.wss.on('connection', async (client: WebSocket.WebSocket, id: string, data?: object) => {
+        this.wss.on('connection', async (client: WebSocket.WebSocket, data?: object) => {
             client.isAlive = true
-            client.id = id
             
             if (data) {
                 client.account = data
@@ -157,18 +156,15 @@ export default class WS {
             client.broadcast = (room: string, type: string, data: object, loopback: boolean = false) => {
                 this.rooms.get(room)
                     ?.clients
-                    .forEach(broadcastClientId => {
-                        if (!loopback && broadcastClientId === client.id) {
+                    .forEach(broadcastClient => {
+                        if (!loopback && broadcastClient.account.id === client.id) {
                             return
                         }
                         
-                        this.clients.get(broadcastClientId)
-                            ?.forEach(client => {
-                                client.send(JSON.stringify({
-                                    type,
-                                    data
-                                }))
-                            })
+                        client.send(JSON.stringify({
+                            type,
+                            data
+                        }))
                     })
             }
     
@@ -210,8 +206,6 @@ export default class WS {
                 client.disconnect()
             })
             
-            this.wss.clients.clear()
-            
             const clientsWithSameId = this.clients.get(client.id) || []
             this.clients.set(client.id, [...clientsWithSameId, client])
         })
@@ -225,13 +219,10 @@ export default class WS {
         this.rooms.get(room)
             ?.clients
             .forEach(client => {
-                this.clients.get(client.id)
-                    ?.forEach(connection => {
-                        connection.send(JSON.stringify({
-                            type,
-                            data
-                        }))
-                    })
+                client.send(JSON.stringify({
+                    type,
+                    data
+                }))
             })
     }
     

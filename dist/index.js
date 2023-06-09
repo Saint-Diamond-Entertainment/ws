@@ -32,13 +32,10 @@ class WS {
         this.broadcast = (room, type, data) => {
             var _a;
             (_a = this.rooms.get(room)) === null || _a === void 0 ? void 0 : _a.clients.forEach(client => {
-                var _a;
-                (_a = this.clients.get(client.id)) === null || _a === void 0 ? void 0 : _a.forEach(connection => {
-                    connection.send(JSON.stringify({
-                        type,
-                        data
-                    }));
-                });
+                client.send(JSON.stringify({
+                    type,
+                    data
+                }));
             });
         };
         const { authenticate, cert, key, port, secured, listenCallback } = data;
@@ -75,13 +72,13 @@ class WS {
         this.wss = new ws_1.WebSocketServer({ noServer: true });
         this.initialize();
         this._server.on('upgrade', (request, client, head) => {
-            authenticate(request, (err, id, data) => {
+            authenticate(request, (err, data) => {
                 if (err) {
                     client.destroy();
                     return;
                 }
                 this.wss.handleUpgrade(request, client, head, (ws) => {
-                    this.wss.emit('connection', ws, id, data);
+                    this.wss.emit('connection', ws, data);
                 });
             });
         });
@@ -100,9 +97,8 @@ class WS {
         this._server.listen(port, this._ip, this.listenCallback);
     }
     initialize() {
-        this.wss.on('connection', (client, id, data) => __awaiter(this, void 0, void 0, function* () {
+        this.wss.on('connection', (client, data) => __awaiter(this, void 0, void 0, function* () {
             client.isAlive = true;
-            client.id = id;
             if (data) {
                 client.account = data;
             }
@@ -146,17 +142,14 @@ class WS {
             };
             client.broadcast = (room, type, data, loopback = false) => {
                 var _a;
-                (_a = this.rooms.get(room)) === null || _a === void 0 ? void 0 : _a.clients.forEach(broadcastClientId => {
-                    var _a;
-                    if (!loopback && broadcastClientId === client.id) {
+                (_a = this.rooms.get(room)) === null || _a === void 0 ? void 0 : _a.clients.forEach(broadcastClient => {
+                    if (!loopback && broadcastClient.account.id === client.id) {
                         return;
                     }
-                    (_a = this.clients.get(broadcastClientId)) === null || _a === void 0 ? void 0 : _a.forEach(client => {
-                        client.send(JSON.stringify({
-                            type,
-                            data
-                        }));
-                    });
+                    client.send(JSON.stringify({
+                        type,
+                        data
+                    }));
                 });
             };
             client.call = (type, data) => {
@@ -190,7 +183,6 @@ class WS {
             client.on('close', () => {
                 client.disconnect();
             });
-            this.wss.clients.clear();
             const clientsWithSameId = this.clients.get(client.id) || [];
             this.clients.set(client.id, [...clientsWithSameId, client]);
         }));
