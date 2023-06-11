@@ -72,13 +72,13 @@ class WS {
         this.wss = new ws_1.WebSocketServer({ noServer: true });
         this.initialize();
         this._server.on('upgrade', (request, client, head) => {
-            authenticate(request, (err, data) => {
+            authenticate(request, (err, id, data) => {
                 if (err) {
                     client.destroy();
                     return;
                 }
                 this.wss.handleUpgrade(request, client, head, (ws) => {
-                    this.wss.emit('connection', ws, data);
+                    this.wss.emit('connection', ws, id, data);
                 });
             });
         });

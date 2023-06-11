@@ -72,14 +72,14 @@ export default class WS {
         this.initialize()
                 
         this._server.on('upgrade', (request, client, head) => {
-            authenticate (request, (err: string, data?: object) => {
+            authenticate (request, (err: string, id: string, data?: object) => {
                 if (err) {
                     client.destroy()
                     return
                 }
             
                 this.wss.handleUpgrade(request, client, head, (ws: WebSocket) => {
-                    this.wss.emit('connection', ws, data)
+                    this.wss.emit('connection', ws, id, data)
                 })
             })
         })
