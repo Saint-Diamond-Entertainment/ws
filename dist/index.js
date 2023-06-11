@@ -97,8 +97,9 @@ class WS {
         this._server.listen(port, this._ip, this.listenCallback);
     }
     initialize() {
-        this.wss.on('connection', (client, data) => __awaiter(this, void 0, void 0, function* () {
+        this.wss.on('connection', (client, id, data) => __awaiter(this, void 0, void 0, function* () {
             client.isAlive = true;
+            client.id = id;
             if (data) {
                 client.account = data;
             }

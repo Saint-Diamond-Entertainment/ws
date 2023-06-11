@@ -102,8 +102,9 @@ export default class WS {
     }
     
     initialize () {
-        this.wss.on('connection', async (client: WebSocket.WebSocket, data?: object) => {
+        this.wss.on('connection', async (client: WebSocket.WebSocket, id: string, data?: object) => {
             client.isAlive = true
+            client.id = id
             
             if (data) {
                 client.account = data
