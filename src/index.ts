@@ -64,7 +64,10 @@ export default class WS {
             })
         }
         else {
-            this._server = http.createServer()
+            this._server = http.createServer((req, res) => {
+                res.setHeader('Access-Control-Allow-Origin', '*')
+                res.setHeader('Access-Control-Allow-Methods', 'POST, PUT, DELETE, OPTIONS, GET')
+            })
         }
 
         this.wss = new WebSocketServer({ noServer: true })
