@@ -67,7 +67,11 @@ class WS {
             });
         }
         else {
-            this._server = http_1.default.createServer();
+            this._server = http_1.default.createServer((req, res) => {
+                res.setHeader('Access-Control-Allow-Origin', '*');
+                res.setHeader('Access-Control-Allow-Methods', 'POST, PUT, DELETE, OPTIONS, GET');
+                res.setHeader('Access-Control-Allow-Credentials', 'true');
+            });
         }
         this.wss = new ws_1.WebSocketServer({ noServer: true });
         this.initialize();

@@ -67,6 +67,7 @@ export default class WS {
             this._server = http.createServer((req, res) => {
                 res.setHeader('Access-Control-Allow-Origin', '*')
                 res.setHeader('Access-Control-Allow-Methods', 'POST, PUT, DELETE, OPTIONS, GET')
+                res.setHeader('Access-Control-Allow-Credentials', 'true')
             })
         }
 
