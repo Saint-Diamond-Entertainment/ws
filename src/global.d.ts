@@ -1,11 +1,9 @@
 import ws from 'ws'
+import type { IAccount } from '../interfaces/account'
 
 declare module 'ws' {
     export interface WebSocket extends ws {
-        account: {
-            id: string
-            nickname: string
-        }
+        account: IAccount
         broadcast: Function
         call: Function
         disconnect: Function
