@@ -1,32 +1,33 @@
 {
-  "name": "ws-sde",
-  "version": "1.0.31",
-  "description": "Package with WebSocket improvements",
-  "main": "dist/index.js",
-  "types": "src/index",
-  "repository": "Saint-Diamond-Entertainment/ws",
-  "homepage": "https://github.com/Saint-Diamond-Entertainment/ws",
-  "bugs": "https://github.com/Saint-Diamond-Entertainment/ws/issues",
-  "keywords": [
-    "websocket",
-    "ws",
-    "wssde",
-    "wss",
-    "real time"
-  ],
-  "scripts": {
-    "dev": "npx tsc && nodemon src/index.ts"
-  },
-  "author": "dmuzychenko",
-  "license": "MIT",
-  "devDependencies": {
-    "@types/node": "^18.15.11",
-    "nodemon": "^2.0.22",
-    "ts-node": "^10.9.1",
-    "typescript": "^5.0.4"
-  },
-  "dependencies": {
-    "@types/ws": "^8.5.4",
-    "ws": "^8.13.0"
-  }
+    "name": "ws-sde",
+    "version": "1.0.32",
+    "description": "Package with WebSocket improvements",
+    "main": "dist/index.js",
+    "types": "src/index",
+    "repository": "Saint-Diamond-Entertainment/ws",
+    "homepage": "https://github.com/Saint-Diamond-Entertainment/ws",
+    "bugs": "https://github.com/Saint-Diamond-Entertainment/ws/issues",
+    "keywords": [
+        "websocket",
+        "ws",
+        "wssde",
+        "wss",
+        "real time"
+    ],
+    "scripts": {
+        "dev": "nodemon src/index.ts",
+        "build": "npx tsc"
+    },
+    "author": "dmuzychenko",
+    "license": "MIT",
+    "devDependencies": {
+        "@types/node": "^18.15.11",
+        "nodemon": "^2.0.22",
+        "ts-node": "^10.9.1",
+        "typescript": "^5.0.4"
+    },
+    "dependencies": {
+        "@types/ws": "^8.5.4",
+        "ws": "^8.13.0"
+    }
 }

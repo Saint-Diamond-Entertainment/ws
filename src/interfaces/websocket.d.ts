@@ -1,5 +1,5 @@
 export interface IMessage {
-    type: string,
+    type: string
     data?: object
 }
 
@@ -10,8 +10,8 @@ export interface IServerData {
     ip?: string
     key?: string
     listenCallback?: () => void
-    logErrors?: boolean
+    logErrors: boolean
     pingInterval?: number
-    port: number
+    port?: number
     secured?: boolean
 }

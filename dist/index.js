@@ -18,6 +18,11 @@ const http_1 = __importDefault(require("http"));
 const https_1 = __importDefault(require("https"));
 const websocket_1 = require("./constants/websocket");
 class WS {
+    listenCallback() {
+        if (this._debug) {
+            console.log('✅ WebSocket server is listening on ' + this._ip + ':' + this._port);
+        }
+    }
     constructor(data) {
         this._ip = websocket_1.DEFAULT_IP;
         this._port = websocket_1.DEFAULT_PORT;
@@ -26,19 +31,16 @@ class WS {
         this.rooms = new Map();
         this.pingInterval = websocket_1.DEFAULT_INTERVAL;
         this.logErrors = websocket_1.DEFAULT_ERRORS_LOGGING;
-        this.listenCallback = () => {
-            this._debug && console.log('✅ WebSocket server is listening on ' + this._ip + ':' + this._port);
-        };
         this.broadcast = (room, type, data) => {
             var _a;
-            (_a = this.rooms.get(room)) === null || _a === void 0 ? void 0 : _a.clients.forEach(client => {
+            (_a = this.rooms.get(room)) === null || _a === void 0 ? void 0 : _a.clients.forEach((client) => {
                 client.send(JSON.stringify({
                     type,
                     data
                 }));
             });
         };
-        const { authenticate, cert, key, port, secured, listenCallback } = data;
+        const { authenticate, cert, key, secured, listenCallback } = data;
         if (data.ip) {
             this._ip = data.ip;
         }
@@ -51,8 +53,8 @@ class WS {
         if (typeof data.logErrors === 'boolean') {
             this.logErrors = data.logErrors;
         }
-        if (data.port) {
-            this._port = port;
+        if (typeof data.port === 'number') {
+            this._port = data.port;
         }
         if (listenCallback) {
             this.listenCallback = listenCallback;
@@ -67,11 +69,7 @@ class WS {
             });
         }
         else {
-            this._server = http_1.default.createServer((req, res) => {
-                res.setHeader('Access-Control-Allow-Origin', '*');
-                res.setHeader('Access-Control-Allow-Methods', 'POST, PUT, DELETE, OPTIONS, GET');
-                res.setHeader('Access-Control-Allow-Credentials', 'true');
-            });
+            this._server = http_1.default.createServer();
         }
         this.wss = new ws_1.WebSocketServer({ noServer: true });
         this.initialize();
@@ -87,9 +85,8 @@ class WS {
             });
         });
         this.pingTimer = setInterval(() => {
-            this.clients
-                .forEach(connections => {
-                connections.forEach(client => {
+            this.clients.forEach((connections) => {
+                connections.forEach((client) => {
                     if (!client.isAlive) {
                         return client.disconnect();
                     }
@@ -98,7 +95,7 @@ class WS {
                 });
             });
         }, this.pingInterval);
-        this._server.listen(port, this._ip, this.listenCallback);
+        this._server.listen(this._port, this._ip, this.listenCallback);
     }
     initialize() {
         this.wss.on('connection', (client, id, data) => __awaiter(this, void 0, void 0, function* () {
@@ -126,14 +123,13 @@ class WS {
                     client.terminate();
                     process.nextTick(() => {
                         var _a;
-                        [...this.rooms
-                                .keys()]
-                            .forEach(room => {
+                        ;
+                        [...this.rooms.keys()].forEach((room) => {
                             client.leave(room);
                         });
                         const clientConnections = this.clients.get(client.id);
                         if (clientConnections) {
-                            this.clients.set(client.id, clientConnections.filter(connection => connection !== client));
+                            this.clients.set(client.id, clientConnections.filter((connection) => connection !== client));
                             if (!((_a = this.clients.get(client.id)) === null || _a === void 0 ? void 0 : _a.length)) {
                                 this.clients.delete(client.id);
                             }
@@ -147,7 +143,7 @@ class WS {
             };
             client.broadcast = (room, type, data, loopback = false) => {
                 var _a;
-                (_a = this.rooms.get(room)) === null || _a === void 0 ? void 0 : _a.clients.forEach(broadcastClient => {
+                (_a = this.rooms.get(room)) === null || _a === void 0 ? void 0 : _a.clients.forEach((broadcastClient) => {
                     if (!loopback && broadcastClient.account.id === client.id) {
                         return;
                     }
@@ -168,7 +164,7 @@ class WS {
                     this.logErrors && console.error('Error while parsing data: ', e);
                 }
             };
-            client.on('message', message => {
+            client.on('message', (message) => {
                 try {
                     const normalizedMessage = JSON.parse(message.toString());
                     if (!normalizedMessage.type) {
