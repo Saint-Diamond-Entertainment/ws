@@ -1,5 +1,5 @@
 import ws from 'ws'
-import type { IAccount } from '../interfaces/account'
+import type { IAccount } from './interfaces/account'
 
 declare module 'ws' {
     export interface WebSocket extends ws {
