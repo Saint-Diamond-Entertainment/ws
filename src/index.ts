@@ -17,7 +17,7 @@ import {
 export default class WS {
     private _server: Server
 
-    wss: WebSocket.Server<WebSocket.WebSocket>
+    wss: WebSocket.Server
 
     private _ip = DEFAULT_IP
     private _port = DEFAULT_PORT
