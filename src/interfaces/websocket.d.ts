@@ -10,7 +10,7 @@ export interface IServerData {
     ip?: string
     key?: string
     listenCallback?: () => void
-    logErrors: boolean
+    logErrors?: boolean
     pingInterval?: number
     port?: number
     secured?: boolean
