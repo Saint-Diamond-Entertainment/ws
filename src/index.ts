@@ -80,8 +80,8 @@ export default class WS {
         this.initialize()
 
         this._server.on('upgrade', (request, client, head) => {
-            authenticate(request, (err: string, account?: IAccount) => {
-                if (err || !account) {
+            authenticate(request, ({ error, account }) => {
+                if (error || !account) {
                     client.destroy()
                     return
                 }

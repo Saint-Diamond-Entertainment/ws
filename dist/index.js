@@ -74,8 +74,8 @@ class WS {
         this.wss = new ws_1.WebSocketServer({ noServer: true });
         this.initialize();
         this._server.on('upgrade', (request, client, head) => {
-            authenticate(request, (err, account) => {
-                if (err || !account) {
+            authenticate(request, ({ error, account }) => {
+                if (error || !account) {
                     client.destroy();
                     return;
                 }
