@@ -5,6 +5,7 @@ import https from 'https'
 import { IRoom } from './interfaces/room'
 import { IServerData, IMessage } from './interfaces/websocket'
 import type { Server } from './types/websocket'
+import type { IAccount } from './interfaces/account'
 import {
     DEFAULT_DEBUG,
     DEFAULT_ERRORS_LOGGING,
@@ -79,14 +80,14 @@ export default class WS {
         this.initialize()
 
         this._server.on('upgrade', (request, client, head) => {
-            authenticate(request, (err: string, id: string, data?: object) => {
-                if (err) {
+            authenticate(request, (err: string, account?: IAccount) => {
+                if (err || !account) {
                     client.destroy()
                     return
                 }
 
                 this.wss.handleUpgrade(request, client, head, (ws: WebSocket) => {
-                    this.wss.emit('connection', ws, id, data)
+                    this.wss.emit('connection', ws, account)
                 })
             })
         })
@@ -108,122 +109,117 @@ export default class WS {
     }
 
     initialize() {
-        this.wss.on(
-            'connection',
-            async (client: WebSocket.WebSocket, id: string, data?: object) => {
-                client.isAlive = true
-                client.id = id
+        this.wss.on('connection', async (client: WebSocket.WebSocket, account: IAccount) => {
+            client.isAlive = true
+            client.id = account.id
 
-                if (data) {
-                    client.account = data
+            client.account = account
+
+            client.join = (room: string) => {
+                if (!this.rooms.get(room)) {
+                    this.createRoom(room)
                 }
 
-                client.join = (room: string) => {
-                    if (!this.rooms.get(room)) {
-                        this.createRoom(room)
-                    }
-
-                    this.rooms.get(room)?.clients.add(client)
-                }
-
-                client.leave = (room: string) => {
-                    this.rooms.get(room)?.clients.delete(client)
-
-                    if (!this.rooms.get(room)?.clients.size) {
-                        this.deleteRoom(room)
-                    }
-                }
-
-                client.disconnect = () => {
-                    try {
-                        client.terminate()
-
-                        process.nextTick(() => {
-                            ;[...this.rooms.keys()].forEach((room) => {
-                                client.leave(room)
-                            })
-
-                            const clientConnections = this.clients.get(client.id)
-
-                            if (clientConnections) {
-                                this.clients.set(
-                                    client.id,
-                                    clientConnections.filter((connection) => connection !== client)
-                                )
-
-                                if (!this.clients.get(client.id)?.length) {
-                                    this.clients.delete(client.id)
-                                }
-                            }
-                            client.emit('disconnect')
-                        })
-                    } catch (e) {
-                        this.logErrors && console.error('Error while disconnecting: ', e)
-                    }
-                }
-
-                client.broadcast = (
-                    room: string,
-                    type: string,
-                    data: object,
-                    loopback: boolean = false
-                ) => {
-                    this.rooms.get(room)?.clients.forEach((broadcastClient) => {
-                        if (!loopback && broadcastClient.account.id === client.id) {
-                            return
-                        }
-
-                        client.send(
-                            JSON.stringify({
-                                type,
-                                data
-                            })
-                        )
-                    })
-                }
-
-                client.call = (type: string, data: object) => {
-                    try {
-                        client.send(
-                            JSON.stringify({
-                                type,
-                                data
-                            })
-                        )
-                    } catch (e) {
-                        this.logErrors && console.error('Error while parsing data: ', e)
-                    }
-                }
-
-                client.on('message', (message) => {
-                    try {
-                        const normalizedMessage: IMessage = JSON.parse(message.toString())
-
-                        if (!normalizedMessage.type) {
-                            throw new Error('No message type')
-                        }
-
-                        const type = normalizedMessage.type
-                        const data: object = normalizedMessage.data || {}
-
-                        client.emit(type, data)
-                    } catch (e) {
-                        this.logErrors && console.error('Error while parsing message: ', e)
-                    }
-                })
-
-                client.on('pong', () => {
-                    client.isAlive = true
-                })
-
-                client.on('close', () => {
-                    client.disconnect()
-                })
-
-                const clientsWithSameId = this.clients.get(client.id) || []
-                this.clients.set(client.id, [...clientsWithSameId, client])
+                this.rooms.get(room)?.clients.add(client)
             }
-        )
+
+            client.leave = (room: string) => {
+                this.rooms.get(room)?.clients.delete(client)
+
+                if (!this.rooms.get(room)?.clients.size) {
+                    this.deleteRoom(room)
+                }
+            }
+
+            client.disconnect = () => {
+                try {
+                    client.terminate()
+
+                    process.nextTick(() => {
+                        ;[...this.rooms.keys()].forEach((room) => {
+                            client.leave(room)
+                        })
+
+                        const clientConnections = this.clients.get(client.id)
+
+                        if (clientConnections) {
+                            this.clients.set(
+                                client.id,
+                                clientConnections.filter((connection) => connection !== client)
+                            )
+
+                            if (!this.clients.get(client.id)?.length) {
+                                this.clients.delete(client.id)
+                            }
+                        }
+                        client.emit('disconnect')
+                    })
+                } catch (e) {
+                    this.logErrors && console.error('Error while disconnecting: ', e)
+                }
+            }
+
+            client.broadcast = (
+                room: string,
+                type: string,
+                data: object,
+                loopback: boolean = false
+            ) => {
+                this.rooms.get(room)?.clients.forEach((broadcastClient) => {
+                    if (!loopback && broadcastClient.account.id === client.id) {
+                        return
+                    }
+
+                    client.send(
+                        JSON.stringify({
+                            type,
+                            data
+                        })
+                    )
+                })
+            }
+
+            client.call = (type: string, data: object) => {
+                try {
+                    client.send(
+                        JSON.stringify({
+                            type,
+                            data
+                        })
+                    )
+                } catch (e) {
+                    this.logErrors && console.error('Error while parsing data: ', e)
+                }
+            }
+
+            client.on('message', (message) => {
+                try {
+                    const normalizedMessage: IMessage = JSON.parse(message.toString())
+
+                    if (!normalizedMessage.type) {
+                        throw new Error('No message type')
+                    }
+
+                    const type = normalizedMessage.type
+                    const data: object = normalizedMessage.data || {}
+
+                    client.emit(type, data)
+                } catch (e) {
+                    this.logErrors && console.error('Error while parsing message: ', e)
+                }
+            })
+
+            client.on('pong', () => {
+                client.isAlive = true
+            })
+
+            client.on('close', () => {
+                client.disconnect()
+            })
+
+            const clientsWithSameId = this.clients.get(client.id) || []
+            this.clients.set(client.id, [...clientsWithSameId, client])
+        })
 
         this.wss.on('close', () => {
             clearInterval(this.pingTimer)

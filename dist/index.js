@@ -74,13 +74,13 @@ class WS {
         this.wss = new ws_1.WebSocketServer({ noServer: true });
         this.initialize();
         this._server.on('upgrade', (request, client, head) => {
-            authenticate(request, (err, id, data) => {
-                if (err) {
+            authenticate(request, (err, account) => {
+                if (err || !account) {
                     client.destroy();
                     return;
                 }
                 this.wss.handleUpgrade(request, client, head, (ws) => {
-                    this.wss.emit('connection', ws, id, data);
+                    this.wss.emit('connection', ws, account);
                 });
             });
         });
@@ -98,12 +98,10 @@ class WS {
         this._server.listen(this._port, this._ip, this.listenCallback);
     }
     initialize() {
-        this.wss.on('connection', (client, id, data) => __awaiter(this, void 0, void 0, function* () {
+        this.wss.on('connection', (client, account) => __awaiter(this, void 0, void 0, function* () {
             client.isAlive = true;
-            client.id = id;
-            if (data) {
-                client.account = data;
-            }
+            client.id = account.id;
+            client.account = account;
             client.join = (room) => {
                 var _a;
                 if (!this.rooms.get(room)) {
