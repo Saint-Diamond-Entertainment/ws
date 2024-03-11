@@ -66,6 +66,10 @@ class WS {
             this._server = https_1.default.createServer({
                 cert: (0, fs_1.readFileSync)(cert),
                 key: (0, fs_1.readFileSync)(key)
+            }, (req, res) => {
+                res.setHeader('Access-Control-Allow-Origin', '*');
+                res.setHeader('Access-Control-Allow-Methods', 'POST, PUT, DELETE, OPTIONS, GET');
+                res.setHeader('Access-Control-Allow-Credentials', 'true');
             });
         }
         else {
