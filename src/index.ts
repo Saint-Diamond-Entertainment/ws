@@ -67,10 +67,17 @@ export default class WS {
                 throw new Error('No cert/key definition')
             }
 
-            this._server = https.createServer({
-                cert: readFileSync(cert),
-                key: readFileSync(key)
-            })
+            this._server = https.createServer(
+                {
+                    cert: readFileSync(cert),
+                    key: readFileSync(key)
+                },
+                (req, res) => {
+                    res.setHeader('Access-Control-Allow-Origin', '*')
+                    res.setHeader('Access-Control-Allow-Methods', 'OPTIONS, GET')
+                    res.setHeader('Access-Control-Max-Age', 2592000)
+                }
+            )
         } else {
             this._server = http.createServer()
         }

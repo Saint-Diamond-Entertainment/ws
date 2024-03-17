@@ -66,6 +66,10 @@ class WS {
             this._server = https_1.default.createServer({
                 cert: (0, fs_1.readFileSync)(cert),
                 key: (0, fs_1.readFileSync)(key)
+            }, (req, res) => {
+                res.setHeader('Access-Control-Allow-Origin', '*');
+                res.setHeader('Access-Control-Allow-Methods', 'OPTIONS, GET');
+                res.setHeader('Access-Control-Max-Age', 2592000);
             });
         }
         else {
