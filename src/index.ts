@@ -65,7 +65,11 @@ export default class WS {
         }
 
         const app = express()
-        app.use(cors())
+        app.use(
+            cors({
+                credentials: true
+            })
+        )
 
         if (secured) {
             if (!cert || !key) {

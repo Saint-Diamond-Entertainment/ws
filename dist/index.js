@@ -62,7 +62,9 @@ class WS {
             this.listenCallback = listenCallback;
         }
         const app = (0, express_1.default)();
-        app.use((0, cors_1.default)());
+        app.use((0, cors_1.default)({
+            credentials: true
+        }));
         if (secured) {
             if (!cert || !key) {
                 throw new Error('No cert/key definition');
