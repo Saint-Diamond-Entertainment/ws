@@ -14,8 +14,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const ws_1 = require("ws");
 const fs_1 = require("fs");
+const express_1 = __importDefault(require("express"));
 const http_1 = __importDefault(require("http"));
 const https_1 = __importDefault(require("https"));
+const cors_1 = __importDefault(require("cors"));
 const websocket_1 = require("./constants/websocket");
 class WS {
     listenCallback() {
@@ -59,6 +61,8 @@ class WS {
         if (listenCallback) {
             this.listenCallback = listenCallback;
         }
+        const app = (0, express_1.default)();
+        app.use((0, cors_1.default)());
         if (secured) {
             if (!cert || !key) {
                 throw new Error('No cert/key definition');
@@ -66,14 +70,10 @@ class WS {
             this._server = https_1.default.createServer({
                 cert: (0, fs_1.readFileSync)(cert),
                 key: (0, fs_1.readFileSync)(key)
-            }, (req, res) => {
-                res.setHeader('Access-Control-Allow-Origin', '*');
-                res.setHeader('Access-Control-Allow-Methods', 'OPTIONS, GET');
-                res.setHeader('Access-Control-Max-Age', 2592000);
-            });
+            }, app);
         }
         else {
-            this._server = http_1.default.createServer();
+            this._server = http_1.default.createServer(app);
         }
         this.wss = new ws_1.WebSocketServer({ noServer: true });
         this.initialize();

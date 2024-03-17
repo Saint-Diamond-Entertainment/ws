@@ -1,7 +1,9 @@
 import WebSocket, { WebSocketServer } from 'ws'
 import { readFileSync } from 'fs'
+import express from 'express'
 import http from 'http'
 import https from 'https'
+import cors from 'cors'
 import { IRoom } from './interfaces/room'
 import { IServerData, IMessage } from './interfaces/websocket'
 import type { Server } from './types/websocket'
@@ -62,6 +64,9 @@ export default class WS {
             this.listenCallback = listenCallback
         }
 
+        const app = express()
+        app.use(cors())
+
         if (secured) {
             if (!cert || !key) {
                 throw new Error('No cert/key definition')
@@ -72,14 +77,10 @@ export default class WS {
                     cert: readFileSync(cert),
                     key: readFileSync(key)
                 },
-                (req, res) => {
-                    res.setHeader('Access-Control-Allow-Origin', '*')
-                    res.setHeader('Access-Control-Allow-Methods', 'OPTIONS, GET')
-                    res.setHeader('Access-Control-Max-Age', 2592000)
-                }
+                app
             )
         } else {
-            this._server = http.createServer()
+            this._server = http.createServer(app)
         }
 
         this.wss = new WebSocketServer({ noServer: true })
