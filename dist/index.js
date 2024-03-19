@@ -63,6 +63,7 @@ class WS {
         }
         const app = (0, express_1.default)();
         app.use((0, cors_1.default)({
+            origin: true,
             credentials: true
         }));
         if (secured) {
