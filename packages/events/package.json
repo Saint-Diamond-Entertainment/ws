@@ -3,7 +3,7 @@
     "version": "0.0.3",
     "description": "Package with WebSocket events",
     "main": "dist/index.js",
-    "types": "src/index",
+    "types": "src/index.d.ts",
     "repository": "Saint-Diamond-Entertainment/ws",
     "homepage": "https://github.com/Saint-Diamond-Entertainment/ws/packages/events",
     "bugs": "https://github.com/Saint-Diamond-Entertainment/ws/issues",

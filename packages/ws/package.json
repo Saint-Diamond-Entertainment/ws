@@ -3,7 +3,7 @@
     "version": "0.0.3",
     "description": "Package with WebSocket improvements",
     "main": "dist/index.js",
-    "types": "src/index",
+    "types": "src/index.d.ts",
     "repository": "Saint-Diamond-Entertainment/ws",
     "homepage": "https://github.com/Saint-Diamond-Entertainment/ws/packages/ws",
     "bugs": "https://github.com/Saint-Diamond-Entertainment/ws/issues",
