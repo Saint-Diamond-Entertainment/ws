@@ -12,6 +12,7 @@
         "ws events",
         "ws events sde",
         "wss events sde",
+        "saint diamond",
         "real time"
     ],
     "files": [
@@ -28,5 +29,6 @@
         "ts-node": "^10.9.1",
         "typescript": "^5.0.4",
         "zod": "^3.23.8"
-    }
+    },
+    "gitHead": "190d296706fa42c059ccd5fea4716338a6c3d7d6"
 }
