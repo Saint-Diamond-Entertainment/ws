@@ -1,6 +1,6 @@
 {
     "name": "@saint-diamond-entertainment/ws",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "description": "Package with WebSocket improvements",
     "main": "dist/index.js",
     "types": "src/index.d.ts",
