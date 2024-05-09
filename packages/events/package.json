@@ -10,6 +10,7 @@
     "keywords": [
         "websocket events",
         "ws events",
+        "spooly",
         "ws events sde",
         "wss events sde",
         "saint diamond",
@@ -30,5 +31,5 @@
         "typescript": "^5.0.4",
         "zod": "^3.23.8"
     },
-    "gitHead": "190d296706fa42c059ccd5fea4716338a6c3d7d6"
+    "gitHead": "3177d225e54ad83da66d150912583f35c38d0a08"
 }
