@@ -1,0 +1,32 @@
+{
+    "name": "@saint-diamond-entertainment/events",
+    "version": "0.0.0",
+    "description": "Package with WebSocket events",
+    "main": "dist/index.js",
+    "types": "src/index",
+    "repository": "Saint-Diamond-Entertainment/ws",
+    "homepage": "https://github.com/Saint-Diamond-Entertainment/ws/packages/events",
+    "bugs": "https://github.com/Saint-Diamond-Entertainment/ws/issues",
+    "keywords": [
+        "websocket events",
+        "ws events",
+        "ws events sde",
+        "wss events sde",
+        "real time"
+    ],
+    "files": [
+        "dist/"
+    ],
+    "scripts": {
+        "build": "npx tsc --declaration"
+    },
+    "author": "dmuzychenko",
+    "license": "MIT",
+    "devDependencies": {
+        "@types/node": "^18.15.11",
+        "nodemon": "^2.0.22",
+        "ts-node": "^10.9.1",
+        "typescript": "^5.0.4",
+        "zod": "^3.23.8"
+    }
+}

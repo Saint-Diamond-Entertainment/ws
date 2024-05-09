@@ -1,0 +1,6 @@
+node_modules/
+packages/ws/dist
+packages/ws/node_modules
+packages/events/dist
+packages/events/node_modules
+.nx
