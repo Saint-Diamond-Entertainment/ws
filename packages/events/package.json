@@ -1,6 +1,6 @@
 {
     "name": "@saint-diamond-entertainment/events",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "Package with WebSocket events",
     "main": "dist/index.js",
     "types": "src/index",
