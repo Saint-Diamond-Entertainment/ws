@@ -1,3 +1,5 @@
+import { z } from 'zod'
+
 export enum EWebsocketClientEvents {
     chatDelete = 'chat/delete',
     chatRemoveAdmin = 'chat/remove-admin',
@@ -14,6 +16,7 @@ export enum EWebsocketClientEvents {
     messageRead = 'message/read',
     messageReceive = 'message/receive'
 }
+export const eWebsocketClientEvents = z.nativeEnum(EWebsocketClientEvents)
 
 export enum EWebsocketServerEvents {
     chatDelete = 'chat/delete',
@@ -31,3 +34,4 @@ export enum EWebsocketServerEvents {
     messageRead = 'message/read',
     messageSend = 'message/send'
 }
+export const eWebsocketServerEvents = z.nativeEnum(EWebsocketServerEvents)
