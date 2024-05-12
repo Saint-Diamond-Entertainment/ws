@@ -1,5 +1,5 @@
-import WebSocket from 'ws'
+import type { IWebSocketClient } from './websocket'
 
-export interface IRoom {
-    clients: Set<WebSocket.WebSocket>
+export interface IRoom<T> {
+    clients: Set<IWebSocketClient<T>>
 }

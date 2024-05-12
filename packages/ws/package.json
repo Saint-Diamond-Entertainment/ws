@@ -18,7 +18,7 @@
         "dist/"
     ],
     "scripts": {
-        "dev": "nodemon src/index.ts",
+        "dev": "nodemon src/sandbox/index.ts",
         "build": "npx tsc --declaration"
     },
     "author": "dmuzychenko",
@@ -27,7 +27,8 @@
         "@types/node": "^18.15.11",
         "nodemon": "^2.0.22",
         "ts-node": "^10.9.1",
-        "typescript": "^5.0.4"
+        "typescript": "^5.0.4",
+        "zod": "^3.23.8"
     },
     "dependencies": {
         "@types/cors": "^2.8.17",

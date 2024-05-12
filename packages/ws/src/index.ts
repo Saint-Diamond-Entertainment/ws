@@ -5,106 +5,96 @@ import http from 'http'
 import https from 'https'
 import cors from 'cors'
 import type { IRoom } from './types/room'
-import type { IServerData, IMessage, TServer } from './types/websocket'
-import type { IAccount } from './types/account'
-import {
-    DEFAULT_DEBUG,
-    DEFAULT_ERRORS_LOGGING,
-    DEFAULT_INTERVAL,
-    DEFAULT_IP,
-    DEFAULT_PORT
-} from './constants/websocket'
+import type {
+    IServerConfigArgs,
+    IAuthenticate,
+    IMessage,
+    TServer,
+    IWebSocketClient
+} from './types/websocket'
+import { serverArgsSchema } from './schemas/websocket'
+import { DEFAULT_DEBUG, DEFAULT_INTERVAL, DEFAULT_IP, DEFAULT_PORT } from './constants/websocket'
 
-export default class WS {
-    private _server: TServer
+export default class WS<T> {
+    private _httpServer: TServer
+    private _config = {
+        ip: DEFAULT_IP,
+        port: DEFAULT_PORT,
+        debug: DEFAULT_DEBUG,
+        pingInterval: DEFAULT_INTERVAL,
+        listeningListener() {
+            if (this.debug) {
+                console.log('✅ WebSocket server is listening on ' + this.ip + ':' + this.port)
+            }
+        }
+    }
+    private _pingTimer: NodeJS.Timer | undefined = undefined
+    private _expressApp = express()
 
-    wss: WebSocket.Server
+    wsServer: WebSocket.Server
+    clients: Map<string, IWebSocketClient<T>[]> = new Map()
+    rooms: Map<string, IRoom<T>> = new Map()
 
-    private _ip = DEFAULT_IP
-    private _port = DEFAULT_PORT
-    private _debug = DEFAULT_DEBUG
+    private applyConfig(config: IServerConfigArgs<T>) {
+        const { ip, debug, pingInterval, port, listeningListener } = config
 
-    clients: Map<string, WebSocket.WebSocket[]> = new Map()
-    rooms: Map<string, IRoom> = new Map()
+        if (typeof ip === 'string') {
+            this._config.ip = ip
+        }
 
-    pingTimer: NodeJS.Timer
-    pingInterval = DEFAULT_INTERVAL
-    logErrors = DEFAULT_ERRORS_LOGGING
-    listenCallback() {
-        if (this._debug) {
-            console.log('✅ WebSocket server is listening on ' + this._ip + ':' + this._port)
+        if (typeof debug === 'boolean') {
+            this._config.debug = debug
+        }
+
+        if (typeof pingInterval === 'number') {
+            this._config.pingInterval = pingInterval
+        }
+
+        if (typeof port === 'number') {
+            this._config.port = port
+        }
+
+        if (listeningListener) {
+            this._config.listeningListener = listeningListener
         }
     }
 
-    constructor(data: IServerData) {
-        const { authenticate, cert, key, secured, listenCallback } = data
-
-        if (data.ip) {
-            this._ip = data.ip
-        }
-
-        if (typeof data.debug === 'boolean') {
-            this._debug = data.debug
-        }
-
-        if (typeof data.pingInterval === 'number') {
-            this.pingInterval = data.pingInterval
-        }
-
-        if (typeof data.logErrors === 'boolean') {
-            this.logErrors = data.logErrors
-        }
-
-        if (typeof data.port === 'number') {
-            this._port = data.port
-        }
-
-        if (listenCallback) {
-            this.listenCallback = listenCallback
-        }
-
-        const app = express()
-        app.use(
-            cors({
-                origin: true,
-                credentials: true
-            })
-        )
+    private createHTTPServer(config: { cert?: string; key?: string; secured?: boolean }) {
+        const { cert, key, secured } = config
 
         if (secured) {
             if (!cert || !key) {
                 throw new Error('No cert/key definition')
             }
 
-            this._server = https.createServer(
+            this._httpServer = https.createServer(
                 {
                     cert: readFileSync(cert),
                     key: readFileSync(key)
                 },
-                app
+                this._expressApp
             )
         } else {
-            this._server = http.createServer(app)
+            this._httpServer = http.createServer(this._expressApp)
         }
+    }
 
-        this.wss = new WebSocketServer({ noServer: true })
-
-        this.initialize()
-
-        this._server.on('upgrade', (request, client, head) => {
-            authenticate(request, ({ error, account }) => {
-                if (error || !account) {
-                    client.destroy()
-                    return
-                }
-
-                this.wss.handleUpgrade(request, client, head, (ws: WebSocket) => {
-                    this.wss.emit('connection', ws, account)
+    private initUpgradeHandler(authenticate: IAuthenticate<T>) {
+        this._httpServer?.on('upgrade', async (request, client, head) => {
+            const authResponse = await authenticate(request)
+            if (authResponse.isAuth) {
+                const { id, data } = authResponse
+                this.wsServer.handleUpgrade(request, client, head, (ws: WebSocket) => {
+                    this.wsServer.emit('connection', ws, id, data)
                 })
-            })
+            } else {
+                client.destroy()
+            }
         })
+    }
 
-        this.pingTimer = setInterval(() => {
+    private initHeartbeat() {
+        this._pingTimer = setInterval(() => {
             this.clients.forEach((connections) => {
                 connections.forEach((client) => {
                     if (!client.isAlive) {
@@ -115,17 +105,38 @@ export default class WS {
                     client.ping()
                 })
             })
-        }, this.pingInterval)
-
-        this._server.listen(this._port, this._ip, this.listenCallback)
+        }, this._config.pingInterval)
     }
 
-    initialize() {
-        this.wss.on('connection', async (client: WebSocket.WebSocket, account: IAccount) => {
-            client.isAlive = true
-            client.id = account.id
+    constructor(config: IServerConfigArgs<T>) {
+        serverArgsSchema.parse(config)
 
-            client.account = account
+        const { cert, key, secured, authenticate } = config
+
+        this.applyConfig(config)
+        this.createHTTPServer({ cert, key, secured })
+
+        this._expressApp.use(
+            cors({
+                origin: true,
+                credentials: true
+            })
+        )
+
+        this.wsServer = new WebSocketServer({ noServer: true })
+
+        this.initializeEvents()
+        this.initUpgradeHandler(authenticate)
+        this.initHeartbeat()
+
+        this._httpServer?.listen(this._config.port, this._config.ip, this._config.listeningListener)
+    }
+
+    private initializeEvents() {
+        this.wsServer.on('connection', async (client: IWebSocketClient<T>, id: string, data: T) => {
+            client.isAlive = true
+            client.id = id
+            client.data = data
 
             client.join = (room: string) => {
                 if (!this.rooms.get(room)) {
@@ -164,7 +175,7 @@ export default class WS {
                     client.emit('disconnect')
                     client.terminate()
                 } catch (e) {
-                    this.logErrors && console.error('Error while disconnecting: ', e)
+                    this._config.debug && console.error('Error while disconnecting: ', e)
                 }
             }
 
@@ -175,7 +186,7 @@ export default class WS {
                 loopback: boolean = false
             ) => {
                 this.rooms.get(room)?.clients.forEach((broadcastClient) => {
-                    if (!loopback && broadcastClient.account.id === client.id) {
+                    if (broadcastClient.id === client.id && !loopback) {
                         return
                     }
 
@@ -197,7 +208,7 @@ export default class WS {
                         })
                     )
                 } catch (e) {
-                    this.logErrors && console.error('Error while parsing data: ', e)
+                    this._config.debug && console.error('Error while parsing data: ', e)
                 }
             }
 
@@ -210,11 +221,11 @@ export default class WS {
                     }
 
                     const type = normalizedMessage.type
-                    const data: object = normalizedMessage.data || {}
+                    const data = normalizedMessage.data || {}
 
                     client.emit(type, data)
                 } catch (e) {
-                    this.logErrors && console.error('Error while parsing message: ', e)
+                    this._config.debug && console.error('Error while parsing message: ', e)
                 }
             })
 
@@ -230,14 +241,14 @@ export default class WS {
             this.clients.set(client.id, [...clientsWithSameId, client])
         })
 
-        this.wss.on('close', () => {
-            if (typeof this.pingTimer === 'number') {
-                clearInterval(this.pingTimer)
+        this.wsServer.on('close', () => {
+            if (typeof this._pingTimer === 'number') {
+                clearInterval(this._pingTimer)
             }
         })
     }
 
-    broadcast = (room: string, type: string, data: object) => {
+    broadcast(room: string, type: string, data: object) {
         this.rooms.get(room)?.clients.forEach((client) => {
             client.send(
                 JSON.stringify({
