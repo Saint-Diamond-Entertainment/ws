@@ -24,7 +24,7 @@ export interface IServerConfigArgs<T> {
     secured?: boolean
 }
 
-export interface IWebSocketClient<T> extends ws {
+export declare interface IWebSocketClient<T> extends ws {
     data: T
     _data: T
     broadcast: Function
