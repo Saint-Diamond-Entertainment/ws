@@ -28,7 +28,7 @@ export default class WS<T> {
             }
         }
     }
-    private _pingTimer: NodeJS.Timer | undefined = undefined
+    private _pingTimer: NodeJS.Timer | undefined
     private _expressApp = express()
 
     wsServer: WebSocket.Server
@@ -125,18 +125,29 @@ export default class WS<T> {
 
         this.wsServer = new WebSocketServer({ noServer: true })
 
-        this.initializeEvents()
+        this.initEvents()
         this.initUpgradeHandler(authenticate)
         this.initHeartbeat()
 
         this._httpServer?.listen(this._config.port, this._config.ip, this._config.listeningListener)
     }
 
-    private initializeEvents() {
+    private initEvents() {
         this.wsServer.on('connection', async (client: IWebSocketClient<T>, id: string, data: T) => {
             client.isAlive = true
             client.id = id
-            client.data = data
+            client._data = data
+            if (client._data) {
+                client.data = new Proxy(client._data, {
+                    set: (_, prop, value) => {
+                        const clients = this.clients.get(client.id) || []
+                        for (const client of clients) {
+                            client._data[prop as keyof typeof client._data] = value
+                        }
+                        return true
+                    }
+                })
+            }
 
             client.join = (room: string) => {
                 if (!this.rooms.get(room)) {
