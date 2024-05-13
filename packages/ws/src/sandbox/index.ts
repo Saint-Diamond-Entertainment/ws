@@ -21,3 +21,6 @@ const client = new ws('http://127.0.0.1:3010')
 client.on('open', () => {
     console.log('connected')
 })
+client.on('close', () => {
+    console.log('close')
+})
