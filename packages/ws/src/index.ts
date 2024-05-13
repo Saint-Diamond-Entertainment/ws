@@ -32,7 +32,7 @@ export default class WS<T> {
     private _expressApp = express()
 
     wsServer: WebSocket.Server
-    clients: Map<string, IWebSocketClient<T>[]> = new Map()
+    clients: Map<string, { data: T; connections: IWebSocketClient<T>[] }> = new Map()
     rooms: Map<string, IRoom<T>> = new Map()
 
     private applyConfig(config: IServerConfigArgs<T>) {
@@ -95,7 +95,7 @@ export default class WS<T> {
 
     private initHeartbeat() {
         this._pingTimer = setInterval(() => {
-            this.clients.forEach((connections) => {
+            this.clients.forEach(({ connections }) => {
                 connections.forEach((client) => {
                     if (!client.isAlive) {
                         return client.disconnect()
@@ -136,16 +136,19 @@ export default class WS<T> {
         this.wsServer.on('connection', async (client: IWebSocketClient<T>, id: string, data: T) => {
             client.isAlive = true
             client.id = id
-            client._data = data
-            if (client._data) {
-                client.data = new Proxy(client._data, {
-                    set: (_, prop, value) => {
-                        const clients = this.clients.get(client.id) || []
-                        for (const client of clients) {
-                            client._data[prop as keyof typeof client._data] = value
-                        }
-                        return true
-                    }
+
+            const clientsWithSameIdData = this.clients.get(client.id)?.data
+            const clientsWithSameId = this.clients.get(client.id)?.connections
+
+            if (clientsWithSameId) {
+                this.clients.set(client.id, {
+                    data: clientsWithSameIdData!,
+                    connections: [...clientsWithSameId, client]
+                })
+            } else {
+                this.clients.set(client.id, {
+                    data,
+                    connections: [client]
                 })
             }
 
@@ -171,15 +174,18 @@ export default class WS<T> {
                         client.leave(room)
                     })
 
-                    const clientConnections = this.clients.get(client.id)
+                    const clientData = this.clients.get(client.id)?.data
+                    const clientConnections = this.clients.get(client.id)?.connections
 
                     if (clientConnections) {
-                        this.clients.set(
-                            client.id,
-                            clientConnections.filter((connection) => connection !== client)
-                        )
+                        this.clients.set(client.id, {
+                            data: clientData!,
+                            connections: clientConnections.filter(
+                                (connection) => connection !== client
+                            )
+                        })
 
-                        if (!this.clients.get(client.id)?.length) {
+                        if (!this.clients.get(client.id)?.connections.length) {
                             this.clients.delete(client.id)
                         }
                     }
@@ -247,9 +253,6 @@ export default class WS<T> {
             client.on('close', () => {
                 client.disconnect()
             })
-
-            const clientsWithSameId = this.clients.get(client.id) || []
-            this.clients.set(client.id, [...clientsWithSameId, client])
         })
 
         this.wsServer.on('close', () => {

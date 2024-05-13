@@ -25,8 +25,6 @@ export interface IServerConfigArgs<T> {
 }
 
 export interface IWebSocketClient<T> extends ws {
-    data: T
-    _data: T
     broadcast: Function
     call: Function
     disconnect: Function
