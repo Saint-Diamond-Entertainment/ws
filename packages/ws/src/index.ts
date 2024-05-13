@@ -83,9 +83,9 @@ export default class WS<T> {
         this._httpServer?.on('upgrade', async (request, client, head) => {
             const authResponse = await authenticate(request)
             if (authResponse.isAuth) {
-                const { id, data } = authResponse
+                const { id, token, data } = authResponse
                 this.wsServer.handleUpgrade(request, client, head, (ws: WebSocket) => {
-                    this.wsServer.emit('connection', ws, id, data)
+                    this.wsServer.emit('connection', ws, id, token, data)
                 })
             } else {
                 client.destroy()
@@ -133,127 +133,131 @@ export default class WS<T> {
     }
 
     private initEvents() {
-        this.wsServer.on('connection', async (client: IWebSocketClient<T>, id: string, data: T) => {
-            client.isAlive = true
-            client.id = id
-
-            const clientsWithSameIdData = this.clients.get(client.id)?.data
-            const clientsWithSameId = this.clients.get(client.id)?.connections
-
-            if (clientsWithSameId) {
-                this.clients.set(client.id, {
-                    data: clientsWithSameIdData!,
-                    connections: [...clientsWithSameId, client]
-                })
-            } else {
-                this.clients.set(client.id, {
-                    data,
-                    connections: [client]
-                })
-            }
-
-            client.join = (room: string) => {
-                if (!this.rooms.get(room)) {
-                    this.createRoom(room)
-                }
-
-                this.rooms.get(room)?.clients.add(client)
-            }
-
-            client.leave = (room: string) => {
-                this.rooms.get(room)?.clients.delete(client)
-
-                if (!this.rooms.get(room)?.clients.size) {
-                    this.deleteRoom(room)
-                }
-            }
-
-            client.disconnect = () => {
-                try {
-                    ;[...this.rooms.keys()].forEach((room) => {
-                        client.leave(room)
-                    })
-
-                    const clientData = this.clients.get(client.id)?.data
-                    const clientConnections = this.clients.get(client.id)?.connections
-
-                    if (clientConnections) {
-                        this.clients.set(client.id, {
-                            data: clientData!,
-                            connections: clientConnections.filter(
-                                (connection) => connection !== client
-                            )
-                        })
-
-                        if (!this.clients.get(client.id)?.connections.length) {
-                            this.clients.delete(client.id)
-                        }
-                    }
-                    client.emit('disconnect')
-                    client.terminate()
-                } catch (e) {
-                    this._config.debug && console.error('Error while disconnecting: ', e)
-                }
-            }
-
-            client.broadcast = (
-                room: string,
-                type: string,
-                data: object,
-                loopback: boolean = false
-            ) => {
-                this.rooms.get(room)?.clients.forEach((broadcastClient) => {
-                    if (broadcastClient.id === client.id && !loopback) {
-                        return
-                    }
-
-                    client.send(
-                        JSON.stringify({
-                            type,
-                            data
-                        })
-                    )
-                })
-            }
-
-            client.call = (type: string, data: object) => {
-                try {
-                    client.send(
-                        JSON.stringify({
-                            type,
-                            data
-                        })
-                    )
-                } catch (e) {
-                    this._config.debug && console.error('Error while parsing data: ', e)
-                }
-            }
-
-            client.on('message', (message) => {
-                try {
-                    const normalizedMessage: IMessage = JSON.parse(message.toString())
-
-                    if (!normalizedMessage.type) {
-                        throw new Error('No message type')
-                    }
-
-                    const type = normalizedMessage.type
-                    const data = normalizedMessage.data || {}
-
-                    client.emit(type, data)
-                } catch (e) {
-                    this._config.debug && console.error('Error while parsing message: ', e)
-                }
-            })
-
-            client.on('pong', () => {
+        this.wsServer.on(
+            'connection',
+            async (client: IWebSocketClient<T>, id: string, token: string, data: T) => {
                 client.isAlive = true
-            })
+                client.id = id
+                client.token = token
 
-            client.on('close', () => {
-                client.disconnect()
-            })
-        })
+                const clientsWithSameIdData = this.clients.get(client.id)?.data
+                const clientsWithSameId = this.clients.get(client.id)?.connections
+
+                if (clientsWithSameId) {
+                    this.clients.set(client.id, {
+                        data: clientsWithSameIdData!,
+                        connections: [...clientsWithSameId, client]
+                    })
+                } else {
+                    this.clients.set(client.id, {
+                        data,
+                        connections: [client]
+                    })
+                }
+
+                client.join = (room: string) => {
+                    if (!this.rooms.get(room)) {
+                        this.createRoom(room)
+                    }
+
+                    this.rooms.get(room)?.clients.add(client)
+                }
+
+                client.leave = (room: string) => {
+                    this.rooms.get(room)?.clients.delete(client)
+
+                    if (!this.rooms.get(room)?.clients.size) {
+                        this.deleteRoom(room)
+                    }
+                }
+
+                client.disconnect = () => {
+                    try {
+                        ;[...this.rooms.keys()].forEach((room) => {
+                            client.leave(room)
+                        })
+
+                        const clientData = this.clients.get(client.id)?.data
+                        const clientConnections = this.clients.get(client.id)?.connections
+
+                        if (clientConnections) {
+                            this.clients.set(client.id, {
+                                data: clientData!,
+                                connections: clientConnections.filter(
+                                    (connection) => connection !== client
+                                )
+                            })
+
+                            if (!this.clients.get(client.id)?.connections.length) {
+                                this.clients.delete(client.id)
+                            }
+                        }
+                        client.emit('disconnect')
+                        client.terminate()
+                    } catch (e) {
+                        this._config.debug && console.error('Error while disconnecting: ', e)
+                    }
+                }
+
+                client.broadcast = (
+                    room: string,
+                    type: string,
+                    data: object,
+                    loopback: boolean = false
+                ) => {
+                    this.rooms.get(room)?.clients.forEach((broadcastClient) => {
+                        if (broadcastClient.id === client.id && !loopback) {
+                            return
+                        }
+
+                        client.send(
+                            JSON.stringify({
+                                type,
+                                data
+                            })
+                        )
+                    })
+                }
+
+                client.call = (type: string, data: object) => {
+                    try {
+                        client.send(
+                            JSON.stringify({
+                                type,
+                                data
+                            })
+                        )
+                    } catch (e) {
+                        this._config.debug && console.error('Error while parsing data: ', e)
+                    }
+                }
+
+                client.on('message', (message) => {
+                    try {
+                        const normalizedMessage: IMessage = JSON.parse(message.toString())
+
+                        if (!normalizedMessage.type) {
+                            throw new Error('No message type')
+                        }
+
+                        const type = normalizedMessage.type
+                        const data = normalizedMessage.data || {}
+
+                        client.emit(type, data)
+                    } catch (e) {
+                        this._config.debug && console.error('Error while parsing message: ', e)
+                    }
+                })
+
+                client.on('pong', () => {
+                    client.isAlive = true
+                })
+
+                client.on('close', () => {
+                    client.disconnect()
+                })
+            }
+        )
 
         this.wsServer.on('close', () => {
             if (typeof this._pingTimer === 'number') {

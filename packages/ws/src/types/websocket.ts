@@ -10,8 +10,8 @@ export interface IMessage {
 }
 export interface IAuthenticate<T> {
     (request: http.IncomingMessage):
-        | Promise<{ data: T; id: string; isAuth: true } | { isAuth: false }>
-        | { data: T; id: string; isAuth: true }
+        | Promise<{ data: T; token: string; id: string; isAuth: true } | { isAuth: false }>
+        | { data: T; token: string; id: string; isAuth: true }
         | { isAuth: false }
 }
 
@@ -32,6 +32,7 @@ export interface IWebSocketClient<T> extends ws {
     call: Function
     disconnect: Function
     id: string
+    token: string
     isAlive: boolean
     join: Function
     leave: Function

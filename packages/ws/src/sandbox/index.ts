@@ -11,6 +11,7 @@ new WS({
             data: {
                 nickname: 'John'
             },
+            token: 'tokentest',
             id: 'testid',
             isAuth: true
         }
