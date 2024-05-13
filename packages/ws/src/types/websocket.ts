@@ -9,7 +9,10 @@ export interface IMessage {
     data?: object
 }
 export interface IAuthenticate<T> {
-    (request: http.IncomingMessage): { data: T; id: string; isAuth: true } | { isAuth: false }
+    (request: http.IncomingMessage):
+        | Promise<{ data: T; id: string; isAuth: true } | { isAuth: false }>
+        | { data: T; id: string; isAuth: true }
+        | { isAuth: false }
 }
 
 export interface IServerConfigArgs<T> {
