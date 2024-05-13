@@ -1,14 +1,23 @@
 import WS from '../'
+import ws from 'ws'
 
-const ws = new WS({
+new WS({
     port: 3010,
+    listeningListener() {
+        console.log('listen')
+    },
     authenticate() {
         return {
             data: {
                 nickname: 'John'
             },
-            id: '3213123',
+            id: 'testid',
             isAuth: true
         }
     }
+})
+
+const client = new ws('http://127.0.0.1:3010')
+client.on('open', () => {
+    console.log('connected')
 })
