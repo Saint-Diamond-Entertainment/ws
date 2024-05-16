@@ -8,6 +8,7 @@ export interface IMessage {
     type: string
     data?: object
 }
+
 export interface IAuthenticate<T> {
     (request: http.IncomingMessage):
         | Promise<{ data: T; token: string; id: string; isAuth: true } | { isAuth: false }>
@@ -25,9 +26,10 @@ export interface IServerConfigArgs<T> {
     pingInterval?: number
     port?: number
     secured?: boolean
+    clients: Map<string, { data: T; connections: IWebSocketClient[] }>
 }
 
-export interface IWebSocketClient<T> extends ws {
+export interface IWebSocketClient extends ws {
     broadcast: Function
     call: Function
     disconnect: Function

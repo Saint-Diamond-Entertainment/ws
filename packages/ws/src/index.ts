@@ -32,8 +32,8 @@ export default class WS<T> {
     private _expressApp = express()
 
     wsServer: WebSocket.Server
-    clients: Map<string, { data: T; connections: IWebSocketClient<T>[] }> = new Map()
-    rooms: Map<string, IRoom<T>> = new Map()
+    clients: Map<string, { data: T; connections: IWebSocketClient[] }>
+    rooms: Map<string, IRoom>
 
     private applyConfig(config: IServerConfigArgs<T>) {
         const { ip, debug, pingInterval, port, listeningListener } = config
@@ -116,6 +116,9 @@ export default class WS<T> {
         this.applyConfig(config)
         this.createHTTPServer({ cert, key, secured })
 
+        this.clients = config.clients
+        this.rooms = new Map()
+
         this._expressApp.use(
             cors({
                 origin: true,
@@ -135,7 +138,7 @@ export default class WS<T> {
     private initEvents() {
         this.wsServer.on(
             'connection',
-            async (client: IWebSocketClient<T>, id: string, token: string, data: T) => {
+            async (client: IWebSocketClient, id: string, token: string, data: T) => {
                 client.isAlive = true
                 client.id = id
                 client.token = token

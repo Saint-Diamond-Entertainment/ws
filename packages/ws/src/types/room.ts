@@ -1,5 +1,5 @@
 import type { IWebSocketClient } from './websocket'
 
-export interface IRoom<T> {
-    clients: Set<IWebSocketClient<T>>
+export interface IRoom {
+    clients: Set<IWebSocketClient>
 }

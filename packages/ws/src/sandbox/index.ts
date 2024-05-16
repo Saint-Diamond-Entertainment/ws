@@ -1,8 +1,12 @@
 import WS from '../'
 import ws from 'ws'
+import type { IWebSocketClient } from '../types/websocket'
+
+const clients = new Map<string, { data: { nickname: string }; connections: IWebSocketClient[] }>()
 
 new WS({
     port: 3010,
+    clients,
     listeningListener() {
         console.log('listen')
     },
