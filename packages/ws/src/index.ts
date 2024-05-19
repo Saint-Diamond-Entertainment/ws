@@ -144,35 +144,41 @@ export default class WS<T> {
     }
 
     private initRedisEvents() {
-        this.redisSubscriber.subscribe('client:message', (messageData: string) => {
-            const normalizedData: IRedisClientMessage = JSON.parse(messageData)
+        this.redisSubscriber.subscribe(
+            `${process.env.NODE_ENV}:client:message`,
+            (messageData: string) => {
+                const normalizedData: IRedisClientMessage = JSON.parse(messageData)
 
-            const { id, type, data } = normalizedData
+                const { id, type, data } = normalizedData
 
-            const clients = this.clients.get(id)
+                const clients = this.clients.get(id)
 
-            for (const connection of clients?.connections || []) {
-                connection.emit(type, data)
+                for (const connection of clients?.connections || []) {
+                    connection.emit(type, data)
+                }
             }
-        })
-        this.redisSubscriber.subscribe('room:broadcast', (roomData: string) => {
-            const normalizedData: IRedisRoomBroadcast = JSON.parse(roomData)
+        )
+        this.redisSubscriber.subscribe(
+            `${process.env.NODE_ENV}:room:broadcast`,
+            (roomData: string) => {
+                const normalizedData: IRedisRoomBroadcast = JSON.parse(roomData)
 
-            const { room, type, data } = normalizedData
+                const { room, type, data } = normalizedData
 
-            this.rooms.get(room)?.clients.forEach((client) => {
-                client.send(
-                    JSON.stringify({
-                        type,
-                        data
-                    })
-                )
-            })
-        })
-        this.redisSubscriber.subscribe('room:delete', (name: string) => {
+                this.rooms.get(room)?.clients.forEach((client) => {
+                    client.send(
+                        JSON.stringify({
+                            type,
+                            data
+                        })
+                    )
+                })
+            }
+        )
+        this.redisSubscriber.subscribe(`${process.env.NODE_ENV}:room:delete`, (name: string) => {
             this.rooms.delete(name)
         })
-        this.redisSubscriber.subscribe('room:create', (name: string) => {
+        this.redisSubscriber.subscribe(`${process.env.NODE_ENV}:room:create`, (name: string) => {
             if (!this.rooms.get(name)) {
                 this.rooms.set(name, { clients: new Set() })
             }
@@ -288,7 +294,7 @@ export default class WS<T> {
                         }
 
                         this.redisPublisher.publish(
-                            'client:message',
+                            `${process.env.NODE_ENV}:client:message`,
                             JSON.stringify({ ...normalizedMessage, id: client.id })
                         )
                     } catch (e) {
@@ -314,14 +320,17 @@ export default class WS<T> {
     }
 
     broadcast(room: string, type: string, data: object) {
-        this.redisPublisher.publish('room:broadcast', JSON.stringify({ room, type, data }))
+        this.redisPublisher.publish(
+            `${process.env.NODE_ENV}:room:broadcast`,
+            JSON.stringify({ room, type, data })
+        )
     }
 
     createRoom(name: string) {
-        this.redisPublisher.publish('room:create', name)
+        this.redisPublisher.publish(`${process.env.NODE_ENV}:room:create`, name)
     }
 
     deleteRoom(name: string) {
-        this.redisPublisher.publish('room:delete', name)
+        this.redisPublisher.publish(`${process.env.NODE_ENV}:room:delete`, name)
     }
 }
