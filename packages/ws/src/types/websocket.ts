@@ -9,6 +9,16 @@ export interface IMessage {
     data?: object
 }
 
+export interface IRedisClientMessage extends IMessage {
+    id: string
+}
+
+export interface IRedisRoomBroadcast {
+    room: string
+    type: string
+    data: object
+}
+
 export interface IAuthenticate<T> {
     (request: http.IncomingMessage):
         | Promise<{ data: T; token: string; id: string; isAuth: true } | { isAuth: false }>

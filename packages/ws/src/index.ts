@@ -4,11 +4,14 @@ import express from 'express'
 import http from 'http'
 import https from 'https'
 import cors from 'cors'
+import { createClient } from 'redis'
 import type { IRoom } from './types/room'
 import type {
     IServerConfigArgs,
     IAuthenticate,
     IMessage,
+    IRedisRoomBroadcast,
+    IRedisClientMessage,
     TServer,
     IWebSocketClient
 } from './types/websocket'
@@ -34,6 +37,8 @@ export default class WS<T> {
     wsServer: WebSocket.Server
     clients: Map<string, { data: T; connections: IWebSocketClient[] }>
     rooms: Map<string, IRoom>
+    redisPublisher: ReturnType<typeof createClient>
+    redisSubscriber: ReturnType<typeof createClient>
 
     private applyConfig(config: IServerConfigArgs<T>) {
         const { ip, debug, pingInterval, port, listeningListener } = config
@@ -127,12 +132,51 @@ export default class WS<T> {
         )
 
         this.wsServer = new WebSocketServer({ noServer: true })
+        this.redisPublisher = createClient()
+        this.redisSubscriber = createClient()
 
         this.initEvents()
+        this.initRedisEvents()
         this.initUpgradeHandler(authenticate)
         this.initHeartbeat()
 
         this._httpServer?.listen(this._config.port, this._config.ip, this._config.listeningListener)
+    }
+
+    private initRedisEvents() {
+        this.redisSubscriber.subscribe('client:message', (messageData: string) => {
+            const normalizedData: IRedisClientMessage = JSON.parse(messageData)
+
+            const { id, type, data } = normalizedData
+
+            const clients = this.clients.get(id)
+
+            for (const connection of clients?.connections || []) {
+                connection.emit(type, data)
+            }
+        })
+        this.redisSubscriber.subscribe('room:broadcast', (roomData: string) => {
+            const normalizedData: IRedisRoomBroadcast = JSON.parse(roomData)
+
+            const { room, type, data } = normalizedData
+
+            this.rooms.get(room)?.clients.forEach((client) => {
+                client.send(
+                    JSON.stringify({
+                        type,
+                        data
+                    })
+                )
+            })
+        })
+        this.redisSubscriber.subscribe('room:delete', (name: string) => {
+            this.rooms.delete(name)
+        })
+        this.redisSubscriber.subscribe('room:create', (name: string) => {
+            if (!this.rooms.get(name)) {
+                this.rooms.set(name, { clients: new Set() })
+            }
+        })
     }
 
     private initEvents() {
@@ -234,19 +278,19 @@ export default class WS<T> {
                         this._config.debug && console.error('Error while parsing data: ', e)
                     }
                 }
-
                 client.on('message', (message) => {
                     try {
-                        const normalizedMessage: IMessage = JSON.parse(message.toString())
+                        const stringifiedMessage = message.toString()
+                        const normalizedMessage: IMessage = JSON.parse(stringifiedMessage)
 
                         if (!normalizedMessage.type) {
                             throw new Error('No message type')
                         }
 
-                        const type = normalizedMessage.type
-                        const data = normalizedMessage.data || {}
-
-                        client.emit(type, data)
+                        this.redisPublisher.publish(
+                            'client:message',
+                            JSON.stringify({ ...normalizedMessage, id: client.id })
+                        )
                     } catch (e) {
                         this._config.debug && console.error('Error while parsing message: ', e)
                     }
@@ -270,23 +314,14 @@ export default class WS<T> {
     }
 
     broadcast(room: string, type: string, data: object) {
-        this.rooms.get(room)?.clients.forEach((client) => {
-            client.send(
-                JSON.stringify({
-                    type,
-                    data
-                })
-            )
-        })
+        this.redisPublisher.publish('room:broadcast', JSON.stringify({ room, type, data }))
     }
 
     createRoom(name: string) {
-        if (!this.rooms.get(name)) {
-            this.rooms.set(name, { clients: new Set() })
-        }
+        this.redisPublisher.publish('room:create', name)
     }
 
     deleteRoom(name: string) {
-        this.rooms.delete(name)
+        this.redisPublisher.publish('room:delete', name)
     }
 }
