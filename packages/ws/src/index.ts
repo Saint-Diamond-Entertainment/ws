@@ -141,12 +141,15 @@ export default class WS<T> {
             await this.redisSubscriber.connect()
 
             this.initRedisEvents()
+            this.initUpgradeHandler(authenticate)
+            this.initHeartbeat()
+
+            this._httpServer?.listen(
+                this._config.port,
+                this._config.ip,
+                this._config.listeningListener
+            )
         })
-
-        this.initUpgradeHandler(authenticate)
-        this.initHeartbeat()
-
-        this._httpServer?.listen(this._config.port, this._config.ip, this._config.listeningListener)
     }
 
     private initRedisEvents() {
