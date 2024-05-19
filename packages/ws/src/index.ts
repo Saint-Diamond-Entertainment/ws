@@ -135,8 +135,10 @@ export default class WS<T> {
         this.initEvents()
 
         new Promise(async () => {
-            this.redisPublisher = await createClient()
-            this.redisSubscriber = await createClient()
+            this.redisPublisher = createClient()
+            this.redisSubscriber = createClient()
+            await this.redisPublisher.connect()
+            await this.redisSubscriber.connect()
 
             this.initRedisEvents()
         })
