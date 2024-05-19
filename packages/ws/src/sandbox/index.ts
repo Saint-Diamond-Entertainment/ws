@@ -22,10 +22,13 @@ new WS({
     }
 })
 
-const client = new ws('http://127.0.0.1:3010')
-client.on('open', () => {
-    console.log('connected')
-})
-client.on('close', () => {
-    console.log('close')
-})
+setTimeout(() => {
+    const client = new ws('http://127.0.0.1:3010')
+    client.on('open', () => {
+        console.log('connected')
+        client.send(JSON.stringify({ type: 'lol' }))
+    })
+    client.on('close', () => {
+        console.log('close')
+    })
+}, 2000)

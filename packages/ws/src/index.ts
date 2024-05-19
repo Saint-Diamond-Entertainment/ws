@@ -184,14 +184,6 @@ export default class WS<T> {
                 })
             }
         )
-        this.redisSubscriber?.subscribe(`${process.env.NODE_ENV}:room:delete`, (name: string) => {
-            this.rooms.delete(name)
-        })
-        this.redisSubscriber?.subscribe(`${process.env.NODE_ENV}:room:create`, (name: string) => {
-            if (!this.rooms.get(name)) {
-                this.rooms.set(name, { clients: new Set() })
-            }
-        })
     }
 
     private initEvents() {
@@ -336,10 +328,12 @@ export default class WS<T> {
     }
 
     createRoom(name: string) {
-        this.redisPublisher?.publish(`${process.env.NODE_ENV}:room:create`, name)
+        if (!this.rooms.get(name)) {
+            this.rooms.set(name, { clients: new Set() })
+        }
     }
 
     deleteRoom(name: string) {
-        this.redisPublisher?.publish(`${process.env.NODE_ENV}:room:delete`, name)
+        this.rooms.delete(name)
     }
 }
