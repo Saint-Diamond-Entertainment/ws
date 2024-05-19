@@ -37,8 +37,8 @@ export default class WS<T> {
     wsServer: WebSocket.Server
     clients: Map<string, { data: T; connections: IWebSocketClient[] }>
     rooms: Map<string, IRoom>
-    redisPublisher: ReturnType<typeof createClient>
-    redisSubscriber: ReturnType<typeof createClient>
+    redisPublisher: ReturnType<typeof createClient> | undefined
+    redisSubscriber: ReturnType<typeof createClient> | undefined
 
     private applyConfig(config: IServerConfigArgs<T>) {
         const { ip, debug, pingInterval, port, listeningListener } = config
@@ -132,11 +132,15 @@ export default class WS<T> {
         )
 
         this.wsServer = new WebSocketServer({ noServer: true })
-        this.redisPublisher = createClient()
-        this.redisSubscriber = createClient()
-
         this.initEvents()
-        this.initRedisEvents()
+
+        new Promise(async () => {
+            this.redisPublisher = await createClient()
+            this.redisSubscriber = await createClient()
+
+            this.initRedisEvents()
+        })
+
         this.initUpgradeHandler(authenticate)
         this.initHeartbeat()
 
@@ -144,7 +148,7 @@ export default class WS<T> {
     }
 
     private initRedisEvents() {
-        this.redisSubscriber.subscribe(
+        this.redisSubscriber?.subscribe(
             `${process.env.NODE_ENV}:client:message`,
             (messageData: string) => {
                 const normalizedData: IRedisClientMessage = JSON.parse(messageData)
@@ -158,7 +162,7 @@ export default class WS<T> {
                 }
             }
         )
-        this.redisSubscriber.subscribe(
+        this.redisSubscriber?.subscribe(
             `${process.env.NODE_ENV}:room:broadcast`,
             (roomData: string) => {
                 const normalizedData: IRedisRoomBroadcast = JSON.parse(roomData)
@@ -175,10 +179,10 @@ export default class WS<T> {
                 })
             }
         )
-        this.redisSubscriber.subscribe(`${process.env.NODE_ENV}:room:delete`, (name: string) => {
+        this.redisSubscriber?.subscribe(`${process.env.NODE_ENV}:room:delete`, (name: string) => {
             this.rooms.delete(name)
         })
-        this.redisSubscriber.subscribe(`${process.env.NODE_ENV}:room:create`, (name: string) => {
+        this.redisSubscriber?.subscribe(`${process.env.NODE_ENV}:room:create`, (name: string) => {
             if (!this.rooms.get(name)) {
                 this.rooms.set(name, { clients: new Set() })
             }
@@ -293,7 +297,7 @@ export default class WS<T> {
                             throw new Error('No message type')
                         }
 
-                        this.redisPublisher.publish(
+                        this.redisPublisher?.publish(
                             `${process.env.NODE_ENV}:client:message`,
                             JSON.stringify({ ...normalizedMessage, id: client.id })
                         )
@@ -320,17 +324,17 @@ export default class WS<T> {
     }
 
     broadcast(room: string, type: string, data: object) {
-        this.redisPublisher.publish(
+        this.redisPublisher?.publish(
             `${process.env.NODE_ENV}:room:broadcast`,
             JSON.stringify({ room, type, data })
         )
     }
 
     createRoom(name: string) {
-        this.redisPublisher.publish(`${process.env.NODE_ENV}:room:create`, name)
+        this.redisPublisher?.publish(`${process.env.NODE_ENV}:room:create`, name)
     }
 
     deleteRoom(name: string) {
-        this.redisPublisher.publish(`${process.env.NODE_ENV}:room:delete`, name)
+        this.redisPublisher?.publish(`${process.env.NODE_ENV}:room:delete`, name)
     }
 }
