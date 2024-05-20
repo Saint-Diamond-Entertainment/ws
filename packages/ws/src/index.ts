@@ -280,11 +280,8 @@ export default class WS<T> {
                         }
 
                         const { type, data } = normalizedMessage
-                        const clients = this.clients.get(id)
 
-                        for (const connection of clients?.connections || []) {
-                            connection.emit(type, data)
-                        }
+                        client.emit(type, data)
                     } catch (e) {
                         this._config.debug && console.error('Error while parsing message: ', e)
                     }
