@@ -9,10 +9,6 @@ export interface IMessage {
     data?: object
 }
 
-export interface IRedisClientMessage extends IMessage {
-    id: string
-}
-
 export interface IRedisRoomBroadcast {
     room: string
     type: string

@@ -11,7 +11,6 @@ import type {
     IAuthenticate,
     IMessage,
     IRedisRoomBroadcast,
-    IRedisClientMessage,
     TServer,
     IWebSocketClient
 } from './types/websocket'
@@ -154,20 +153,6 @@ export default class WS<T> {
 
     private initRedisEvents() {
         this.redisSubscriber?.subscribe(
-            `${process.env.NODE_ENV}:client:message`,
-            (messageData: string) => {
-                const normalizedData: IRedisClientMessage = JSON.parse(messageData)
-
-                const { id, type, data } = normalizedData
-
-                const clients = this.clients.get(id)
-
-                for (const connection of clients?.connections || []) {
-                    connection.emit(type, data)
-                }
-            }
-        )
-        this.redisSubscriber?.subscribe(
             `${process.env.NODE_ENV}:room:broadcast`,
             (roomData: string) => {
                 const normalizedData: IRedisRoomBroadcast = JSON.parse(roomData)
@@ -294,10 +279,12 @@ export default class WS<T> {
                             throw new Error('No message type')
                         }
 
-                        this.redisPublisher?.publish(
-                            `${process.env.NODE_ENV}:client:message`,
-                            JSON.stringify({ ...normalizedMessage, id: client.id })
-                        )
+                        const { type, data } = normalizedMessage
+                        const clients = this.clients.get(id)
+
+                        for (const connection of clients?.connections || []) {
+                            connection.emit(type, data)
+                        }
                     } catch (e) {
                         this._config.debug && console.error('Error while parsing message: ', e)
                     }
