@@ -17,7 +17,7 @@ import type {
 import { serverArgsSchema } from './schemas/websocket'
 import { DEFAULT_DEBUG, DEFAULT_INTERVAL, DEFAULT_IP, DEFAULT_PORT } from './constants/websocket'
 
-export default class WS<T extends { [key in string]: string }> {
+export default class WS<T extends { [key: string]: string }> {
     private _httpServer: TServer
     private _config = {
         ip: DEFAULT_IP,
