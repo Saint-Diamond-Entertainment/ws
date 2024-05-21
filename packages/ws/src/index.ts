@@ -207,13 +207,6 @@ export default class WS<T extends { [key: string]: string }> {
                     this.clients.set(client.id, [client])
                 }
 
-                const setKey = `${process.env.NODE_ENV}:user:${id}`
-                const connectionsCount = await this.redis?.hGet(setKey, 'connections')
-                this.redis?.hSet(setKey, {
-                    ...data,
-                    connections: connectionsCount === undefined ? 1 : +connectionsCount + 1
-                })
-
                 client.join = (room: string) => {
                     if (!this.rooms.get(room)) {
                         this.createRoom(room)
@@ -310,6 +303,13 @@ export default class WS<T extends { [key: string]: string }> {
 
                 client.on('close', () => {
                     client.disconnect()
+                })
+
+                const setKey = `${process.env.NODE_ENV}:user:${id}`
+                const connectionsCount = await this.redis?.hGet(setKey, 'connections')
+                this.redis?.hSet(setKey, {
+                    ...data,
+                    connections: connectionsCount === undefined ? 1 : +connectionsCount + 1
                 })
             }
         )
