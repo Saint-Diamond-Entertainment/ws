@@ -32,7 +32,7 @@ export interface IServerConfigArgs<T> {
     pingInterval?: number
     port?: number
     secured?: boolean
-    clients: Map<string, { data: T; connections: IWebSocketClient[] }>
+    clients: Map<string, IWebSocketClient[]>
 }
 
 export interface IWebSocketClient extends ws {

@@ -17,7 +17,7 @@ import type {
 import { serverArgsSchema } from './schemas/websocket'
 import { DEFAULT_DEBUG, DEFAULT_INTERVAL, DEFAULT_IP, DEFAULT_PORT } from './constants/websocket'
 
-export default class WS<T> {
+export default class WS<T extends { [key in string]: string }> {
     private _httpServer: TServer
     private _config = {
         ip: DEFAULT_IP,
@@ -34,8 +34,9 @@ export default class WS<T> {
     private _expressApp = express()
 
     wsServer: WebSocket.Server
-    clients: Map<string, { data: T; connections: IWebSocketClient[] }>
-    rooms: Map<string, IRoom>
+    clients: Map<string, IWebSocketClient[]>
+    rooms: Map<string, IRoom> = new Map()
+    redis: ReturnType<typeof createClient> | undefined
     redisPublisher: ReturnType<typeof createClient> | undefined
     redisSubscriber: ReturnType<typeof createClient> | undefined
 
@@ -99,14 +100,14 @@ export default class WS<T> {
 
     private initHeartbeat() {
         this._pingTimer = setInterval(() => {
-            this.clients.forEach(({ connections }) => {
-                connections.forEach((client) => {
-                    if (!client.isAlive) {
-                        return client.disconnect()
+            this.clients.forEach((connections) => {
+                connections.forEach((connection) => {
+                    if (!connection.isAlive) {
+                        return connection.disconnect()
                     }
 
-                    client.isAlive = false
-                    client.ping()
+                    connection.isAlive = false
+                    connection.ping()
                 })
             })
         }, this._config.pingInterval)
@@ -121,7 +122,6 @@ export default class WS<T> {
         this.createHTTPServer({ cert, key, secured })
 
         this.clients = config.clients
-        this.rooms = new Map()
 
         this._expressApp.use(
             cors({
@@ -133,9 +133,11 @@ export default class WS<T> {
         this.wsServer = new WebSocketServer({ noServer: true })
         this.initEvents()
 
-        new Promise(async () => {
+        const a = async () => {
+            this.redis = createClient()
             this.redisPublisher = createClient()
             this.redisSubscriber = createClient()
+            await this.redis.connect()
             await this.redisPublisher.connect()
             await this.redisSubscriber.connect()
 
@@ -148,7 +150,7 @@ export default class WS<T> {
                 this._config.ip,
                 this._config.listeningListener
             )
-        })
+        }
     }
 
     private initRedisEvents() {
@@ -172,6 +174,22 @@ export default class WS<T> {
     }
 
     private initEvents() {
+        this.wsServer.on('disconnect', async (client: IWebSocketClient) => {
+            const setKey = `${process.env.NODE_ENV}:user:${client.id}`
+            const user = await this.redis?.hGetAll(setKey)
+
+            if (user?.connections !== undefined && !isNaN(+user.connections)) {
+                const connectionsCount = +user.connections
+                if (connectionsCount <= 1) {
+                    this.redis?.del(setKey)
+                } else {
+                    this.redis?.hSet(setKey, {
+                        ...user,
+                        connections: connectionsCount - 1
+                    })
+                }
+            }
+        })
         this.wsServer.on(
             'connection',
             async (client: IWebSocketClient, id: string, token: string, data: T) => {
@@ -179,20 +197,20 @@ export default class WS<T> {
                 client.id = id
                 client.token = token
 
-                const clientsWithSameIdData = this.clients.get(client.id)?.data
-                const clientsWithSameId = this.clients.get(client.id)?.connections
+                const clientsWithSameId = this.clients.get(client.id)
 
                 if (clientsWithSameId) {
-                    this.clients.set(client.id, {
-                        data: clientsWithSameIdData!,
-                        connections: [...clientsWithSameId, client]
-                    })
+                    this.clients.set(client.id, [...clientsWithSameId, client])
                 } else {
-                    this.clients.set(client.id, {
-                        data,
-                        connections: [client]
-                    })
+                    this.clients.set(client.id, [client])
                 }
+
+                const setKey = `${process.env.NODE_ENV}:user:${id}`
+                const connectionsCount = await this.redis?.hGet(setKey, 'connections')
+                this.redis?.hSet(setKey, {
+                    ...data,
+                    connections: connectionsCount === undefined ? 1 : +connectionsCount
+                })
 
                 client.join = (room: string) => {
                     if (!this.rooms.get(room)) {
@@ -216,18 +234,15 @@ export default class WS<T> {
                             client.leave(room)
                         })
 
-                        const clientData = this.clients.get(client.id)?.data
-                        const clientConnections = this.clients.get(client.id)?.connections
+                        const clientConnections = this.clients.get(client.id)
 
                         if (clientConnections) {
-                            this.clients.set(client.id, {
-                                data: clientData!,
-                                connections: clientConnections.filter(
-                                    (connection) => connection !== client
-                                )
-                            })
+                            this.clients.set(
+                                client.id,
+                                clientConnections.filter((connection) => connection !== client)
+                            )
 
-                            if (!this.clients.get(client.id)?.connections.length) {
+                            if (!this.clients.get(client.id)?.length) {
                                 this.clients.delete(client.id)
                             }
                         }
