@@ -209,7 +209,7 @@ export default class WS<T extends { [key in string]: string }> {
                 const connectionsCount = await this.redis?.hGet(setKey, 'connections')
                 this.redis?.hSet(setKey, {
                     ...data,
-                    connections: connectionsCount === undefined ? 1 : +connectionsCount
+                    connections: connectionsCount === undefined ? 1 : +connectionsCount + 1
                 })
 
                 client.join = (room: string) => {
