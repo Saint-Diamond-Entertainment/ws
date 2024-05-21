@@ -133,7 +133,7 @@ export default class WS<T extends { [key: string]: string }> {
         this.wsServer = new WebSocketServer({ noServer: true })
         this.initEvents()
 
-        const a = async () => {
+        new Promise(async (resolve) => {
             this.redis = createClient()
             this.redisPublisher = createClient()
             this.redisSubscriber = createClient()
@@ -150,7 +150,9 @@ export default class WS<T extends { [key: string]: string }> {
                 this._config.ip,
                 this._config.listeningListener
             )
-        }
+
+            resolve('success')
+        })
     }
 
     private initRedisEvents() {
