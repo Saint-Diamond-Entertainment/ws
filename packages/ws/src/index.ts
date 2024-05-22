@@ -154,7 +154,7 @@ export default class WS<T extends { [key: string]: string }> {
 
     private initRedisEvents() {
         this.redisSubscriber?.subscribe(`${process.env.NODE_ENV}:room:broadcast`)
-        this.redisSubscriber?.on(`${process.env.NODE_ENV}:room:broadcast`, (roomData: string) => {
+        this.redisSubscriber?.on('message', (_: string, roomData: string) => {
             const normalizedData: IRedisRoomBroadcast = JSON.parse(roomData)
 
             const { room, type, data } = normalizedData
