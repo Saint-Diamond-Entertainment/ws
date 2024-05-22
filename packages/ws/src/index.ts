@@ -176,22 +176,6 @@ export default class WS<T extends { [key: string]: string }> {
     }
 
     private initEvents() {
-        this.wsServer.on('disconnect', async (client: IWebSocketClient) => {
-            const setKey = `${process.env.NODE_ENV}:user:${client.id}`
-            const user = await this.redis?.hGetAll(setKey)
-
-            if (user?.connections !== undefined && !isNaN(+user.connections)) {
-                const connectionsCount = +user.connections
-                if (connectionsCount <= 1) {
-                    this.redis?.del(setKey)
-                } else {
-                    this.redis?.hSet(setKey, {
-                        ...user,
-                        connections: connectionsCount - 1
-                    })
-                }
-            }
-        })
         this.wsServer.on(
             'connection',
             async (client: IWebSocketClient, id: string, token: string, data: T) => {
@@ -301,7 +285,21 @@ export default class WS<T extends { [key: string]: string }> {
                     client.isAlive = true
                 })
 
-                client.on('close', () => {
+                client.on('close', async () => {
+                    const setKey = `${process.env.NODE_ENV}:user:${client.id}`
+                    const user = await this.redis?.hGetAll(setKey)
+
+                    if (user?.connections !== undefined && !isNaN(+user.connections)) {
+                        const connectionsCount = +user.connections
+                        if (connectionsCount <= 1) {
+                            this.redis?.del(setKey)
+                        } else {
+                            this.redis?.hSet(setKey, {
+                                ...user,
+                                connections: connectionsCount - 1
+                            })
+                        }
+                    }
                     client.disconnect()
                 })
 
