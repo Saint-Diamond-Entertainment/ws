@@ -4,7 +4,7 @@ import express from 'express'
 import http from 'http'
 import https from 'https'
 import cors from 'cors'
-import { createClient } from 'redis'
+import Redis from 'ioredis'
 import type { IRoom } from './types/room'
 import type {
     IServerConfigArgs,
@@ -36,9 +36,9 @@ export default class WS<T extends { [key: string]: string }> {
     wsServer: WebSocket.Server
     clients: Map<string, IWebSocketClient[]>
     rooms: Map<string, IRoom> = new Map()
-    redis: ReturnType<typeof createClient> | undefined
-    redisPublisher: ReturnType<typeof createClient> | undefined
-    redisSubscriber: ReturnType<typeof createClient> | undefined
+    redis: Redis | undefined
+    redisPublisher: Redis | undefined
+    redisSubscriber: Redis | undefined
 
     private applyConfig(config: IServerConfigArgs<T>) {
         const { ip, debug, pingInterval, port, listeningListener } = config
@@ -134,12 +134,9 @@ export default class WS<T extends { [key: string]: string }> {
         this.initEvents()
 
         new Promise(async (resolve) => {
-            this.redis = createClient()
-            this.redisPublisher = createClient()
-            this.redisSubscriber = createClient()
-            await this.redis.connect()
-            await this.redisPublisher.connect()
-            await this.redisSubscriber.connect()
+            this.redis = new Redis()
+            this.redisPublisher = new Redis()
+            this.redisSubscriber = new Redis()
 
             this.initRedisEvents()
             this.initUpgradeHandler(authenticate)
@@ -156,23 +153,21 @@ export default class WS<T extends { [key: string]: string }> {
     }
 
     private initRedisEvents() {
-        this.redisSubscriber?.subscribe(
-            `${process.env.NODE_ENV}:room:broadcast`,
-            (roomData: string) => {
-                const normalizedData: IRedisRoomBroadcast = JSON.parse(roomData)
+        this.redisSubscriber?.subscribe(`${process.env.NODE_ENV}:room:broadcast`)
+        this.redisSubscriber?.on(`${process.env.NODE_ENV}:room:broadcast`, (roomData: string) => {
+            const normalizedData: IRedisRoomBroadcast = JSON.parse(roomData)
 
-                const { room, type, data } = normalizedData
+            const { room, type, data } = normalizedData
 
-                this.rooms.get(room)?.clients.forEach((client) => {
-                    client.send(
-                        JSON.stringify({
-                            type,
-                            data
-                        })
-                    )
-                })
-            }
-        )
+            this.rooms.get(room)?.clients.forEach((client) => {
+                client.send(
+                    JSON.stringify({
+                        type,
+                        data
+                    })
+                )
+            })
+        })
     }
 
     private initEvents() {
@@ -289,14 +284,14 @@ export default class WS<T extends { [key: string]: string }> {
 
                 client.on('close', async () => {
                     const setKey = `${process.env.NODE_ENV}:user:${client.id}`
-                    const user = await this.redis?.hGetAll(setKey)
+                    const user = await this.redis?.hgetall(setKey)
 
                     if (user?.connections !== undefined && !isNaN(+user.connections)) {
                         const connectionsCount = +user.connections
                         if (connectionsCount <= 1) {
                             this.redis?.del(setKey)
                         } else {
-                            this.redis?.hSet(setKey, {
+                            this.redis?.hset(setKey, {
                                 ...user,
                                 connections: connectionsCount - 1
                             })
@@ -306,10 +301,10 @@ export default class WS<T extends { [key: string]: string }> {
                 })
 
                 const setKey = `${process.env.NODE_ENV}:user:${id}`
-                const connectionsCount = await this.redis?.hGet(setKey, 'connections')
-                this.redis?.hSet(setKey, {
+                const connectionsCount = await this.redis?.hget(setKey, 'connections')
+                this.redis?.hset(setKey, {
                     ...data,
-                    connections: connectionsCount === undefined ? 1 : +connectionsCount + 1
+                    connections: !connectionsCount ? 1 : +connectionsCount + 1
                 })
             }
         )
