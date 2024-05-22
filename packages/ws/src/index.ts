@@ -225,8 +225,10 @@ export default class WS<T extends { [key: string]: string }> {
                                 this.clients.delete(client.id)
                             }
                         }
-                        client.emit('disconnect')
-                        client.terminate()
+
+                        if (client.readyState === WebSocket.OPEN) {
+                            client.close()
+                        }
                     } catch (e) {
                         this._config.debug && console.error('Error while disconnecting: ', e)
                     }
