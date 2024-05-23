@@ -289,9 +289,9 @@ export default class WS<T extends { [key: string]: string }> {
                     if (user?.connections !== undefined && !isNaN(+user.connections)) {
                         const connectionsCount = +user.connections
                         if (connectionsCount <= 1) {
-                            this.redis?.del(setKey)
+                            await this.redis?.del(setKey)
                         } else {
-                            this.redis?.hset(setKey, {
+                            await this.redis?.hset(setKey, {
                                 ...user,
                                 connections: connectionsCount - 1
                             })
