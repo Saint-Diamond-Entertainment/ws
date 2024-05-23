@@ -26,6 +26,7 @@ export enum EWebsocketServerEvents {
     chatSetAdmin = 'chat/set-admin',
     chatSetImage = 'chat/set-image',
     chatType = 'chat/type',
+    closed = 'closed',
     memberJoin = 'member/join',
     memberKick = 'member/kick',
     messageDelete = 'message/delete',
