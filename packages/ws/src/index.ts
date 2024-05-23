@@ -298,6 +298,7 @@ export default class WS<T extends { [key: string]: string }> {
                         }
                     }
                     client.disconnect()
+                    client.emit('closed')
                 })
 
                 const setKey = `${process.env.NODE_ENV}:user:${id}`
