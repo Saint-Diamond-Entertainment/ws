@@ -134,13 +134,15 @@ export default class WS<T extends { [key: string]: string }> {
         this.initEvents()
 
         new Promise(async (resolve) => {
-            this.redis = new Redis({
+            const redisConfig = {
                 host: config.redisHost || 'localhost',
                 port: config.redisPort || 6379
-            })
+            }
 
-            this.redisPublisher = new Redis()
-            this.redisSubscriber = new Redis()
+            this.redis = new Redis(redisConfig)
+
+            this.redisPublisher = new Redis(redisConfig)
+            this.redisSubscriber = new Redis(redisConfig)
 
             this.initRedisEvents()
             this.initUpgradeHandler(authenticate)
