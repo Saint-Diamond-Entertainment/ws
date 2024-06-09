@@ -140,7 +140,6 @@ export default class WS<T extends { [key: string]: string }> {
             }
 
             this.redis = new Redis(redisConfig)
-
             this.redisPublisher = new Redis(redisConfig)
             this.redisSubscriber = new Redis(redisConfig)
 
