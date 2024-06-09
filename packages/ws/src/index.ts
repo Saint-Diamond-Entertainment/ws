@@ -138,6 +138,7 @@ export default class WS<T extends { [key: string]: string }> {
                 host: config.redisHost || 'localhost',
                 port: config.redisPort || 6379
             })
+
             this.redisPublisher = new Redis()
             this.redisSubscriber = new Redis()
 
