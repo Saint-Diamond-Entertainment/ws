@@ -32,6 +32,8 @@ export interface IServerConfigArgs<T> {
     pingInterval?: number
     port?: number
     secured?: boolean
+    redisPort?: number
+    redisHost?: string
     clients: Map<string, IWebSocketClient[]>
 }
 

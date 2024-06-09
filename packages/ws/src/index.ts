@@ -134,7 +134,10 @@ export default class WS<T extends { [key: string]: string }> {
         this.initEvents()
 
         new Promise(async (resolve) => {
-            this.redis = new Redis()
+            this.redis = new Redis({
+                host: config.redisHost || 'localhost',
+                port: config.redisPort || 6379
+            })
             this.redisPublisher = new Redis()
             this.redisSubscriber = new Redis()
 
