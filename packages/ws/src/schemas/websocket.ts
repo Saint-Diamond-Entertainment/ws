@@ -9,6 +9,6 @@ export const serverArgsSchema = z.object({
     pingInterval: z.number().optional(),
     port: z.number().optional(),
     secured: z.boolean().optional(),
-    redisPort: z.number().optional(),
-    redisHost: z.string().optional()
+    redisHost: z.string().optional(),
+    redisPort: z.number().optional()
 })
